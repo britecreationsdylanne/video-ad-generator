@@ -1108,6 +1108,11 @@
 
                 <!-- Controls -->
                 <div class="controls-panel">
+                    <div style="background: #272D3F; color: white; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                        <span style="font-size: 0.8rem; opacity: 0.7;">Editing</span>
+                        <span id="currentFrameLabel" style="font-weight: 700; margin-left: 0.5rem;">Frame 1</span>
+                    </div>
+
                     <h4>Text Overlay</h4>
 
                     <div class="control-group">
@@ -1178,7 +1183,11 @@
 
                     <hr class="divider">
 
-                    <button class="btn-secondary" style="width: 100%; margin-top: 0; padding: 0.75rem;" onclick="removeCurrentFrame()">
+                    <button class="btn-secondary" style="width: 100%; margin-top: 0; padding: 0.75rem; background: #31D7CA;" onclick="copyOverlayToAllFrames()">
+                        Apply to All Frames
+                    </button>
+
+                    <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem;" onclick="removeCurrentFrame()">
                         Remove Selected Frame
                     </button>
                 </div>
@@ -1190,47 +1199,24 @@
             </div>
         </div>
 
-        <!-- Step 5: Thumbnail Generator -->
+        <!-- Step 5: Thumbnail Selection (Simplified) -->
         <div id="step5" class="card hidden">
             <h1>Select Thumbnail</h1>
-            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Choose a thumbnail for your video ad.</p>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Click on a frame to select it as your video thumbnail.</p>
 
             <div class="two-column-equal">
                 <div>
-                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Auto-Generated Thumbnails</h3>
-                    <p style="color: #7DA3AF; font-size: 0.9rem; margin-bottom: 1rem;">Select from key frames or scrub through the video.</p>
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Select Frame</h3>
 
-                    <div class="thumbnail-grid" id="thumbnailGrid">
+                    <!-- Timeline frames for selection -->
+                    <div class="thumbnail-grid" id="thumbnailGrid" style="grid-template-columns: repeat(4, 1fr);">
                         <!-- Thumbnails will be populated here -->
                     </div>
 
-                    <!-- Video Scrubber for custom frame selection -->
-                    <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
-                        <h4 style="color: #272D3F; margin: 0 0 1rem 0; font-size: 1rem;">Scrub Video for Custom Frame</h4>
-                        <div id="scrubberVideoContainer" style="position: relative; margin-bottom: 1rem;">
-                            <video id="scrubberVideo" style="width: 100%; border-radius: 8px; background: #272D3F;" muted></video>
-                            <div id="scrubberPlaceholder" style="aspect-ratio: 16/9; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Video preview</p>
-                            </div>
-                        </div>
-                        <div class="video-scrubber">
-                            <input type="range" id="videoScrubber" min="0" max="100" value="0" oninput="scrubVideo(this.value)">
-                            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
-                                <span id="scrubberTime" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
-                                <span id="scrubberDuration" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
-                            </div>
-                        </div>
-                        <button class="btn-secondary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" onclick="captureCurrentFrame()">
-                            Capture This Frame as Thumbnail
-                        </button>
-                    </div>
-
-                    <div style="margin-top: 1.5rem;">
-                        <button class="btn-secondary" style="width: 100%; margin-top: 0;" onclick="document.getElementById('customThumbnail').click()">
-                            Upload Custom Thumbnail
-                        </button>
-                        <input type="file" id="customThumbnail" accept="image/*" style="display: none;" onchange="handleCustomThumbnail(this)">
-                    </div>
+                    <!-- Hidden elements needed for functionality -->
+                    <video id="scrubberVideo" style="display: none;" muted></video>
+                    <div id="scrubberPlaceholder" style="display: none;"></div>
+                    <input type="file" id="customThumbnail" accept="image/*" style="display: none;" onchange="handleCustomThumbnail(this)">
                 </div>
 
                 <div>
@@ -1345,7 +1331,8 @@
         let selectedMotion = 'smooth';
         let videoData = null;
         let currentFrame = 0;
-        let overlaySettings = {
+        // Global overlay defaults (used when creating new frame overlays)
+        let overlayDefaults = {
             text: '',
             position: 'bottom-center',
             color: '#FFFFFF',
@@ -1357,12 +1344,17 @@
             logoSrc: '/Logo-BriteCo-Solid-Color-01.png',
             logoSize: 50,
             selectedLogoIndex: 0,
-            // Custom drag positions (as percentages)
             textCustomX: null,
             textCustomY: null,
             logoCustomX: null,
             logoCustomY: null
         };
+
+        // Per-frame overlay settings (array indexed by frame number)
+        let frameOverlays = [];
+
+        // Current frame's overlay settings (for UI binding)
+        let overlaySettings = { ...overlayDefaults };
         let selectedThumbnail = null;
         let adCopyOptions = [];  // Store 3 ad copy options
         let selectedAdCopyIndex = 0;
@@ -2036,6 +2028,24 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 };
             }
 
+            // Initialize frameOverlays array if empty
+            if (frameOverlays.length === 0 && videoData && videoData.frames) {
+                videoData.frames.forEach((frame, idx) => {
+                    frameOverlays[idx] = { ...overlayDefaults };
+                });
+            }
+
+            // Load current frame's overlay settings
+            if (frameOverlays[currentFrame]) {
+                overlaySettings = { ...frameOverlays[currentFrame] };
+            }
+
+            // Update frame label in controls panel
+            const frameLabel = document.getElementById('currentFrameLabel');
+            if (frameLabel) {
+                frameLabel.textContent = `Frame ${currentFrame + 1}`;
+            }
+
             // Initialize logo grid
             initializeLogoGrid();
 
@@ -2205,13 +2215,33 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 frameEl.className = 'timeline-frame' + (index === currentFrame ? ' selected' : '');
                 frameEl.onclick = () => selectFrame(index);
 
+                // Check if this frame has overlays
+                const frameOverlay = frameOverlays[index];
+                const hasText = frameOverlay && frameOverlay.text && frameOverlay.text.trim().length > 0;
+                const hasLogo = frameOverlay && frameOverlay.showLogo;
+
                 // Use captured thumbnail or gradient placeholder
                 const thumbnailStyle = frame.thumbnail
                     ? `background-image: url(${frame.thumbnail}); background-size: cover; background-position: center;`
                     : `background: linear-gradient(135deg, #272D3F ${index * 15}%, #31D7CA ${100 - index * 10}%);`;
 
+                // Build overlay indicators
+                let overlayIndicators = '';
+                if (hasText || hasLogo) {
+                    overlayIndicators = `<div style="position: absolute; top: 4px; left: 4px; display: flex; gap: 2px;">`;
+                    if (hasText) {
+                        overlayIndicators += `<span style="background: #31D7CA; color: white; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px;">T</span>`;
+                    }
+                    if (hasLogo) {
+                        overlayIndicators += `<span style="background: #FC883A; color: white; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px;">L</span>`;
+                    }
+                    overlayIndicators += `</div>`;
+                }
+
                 frameEl.innerHTML = `
-                    <div style="width: 100%; aspect-ratio: 9/16; ${thumbnailStyle}"></div>
+                    <div style="width: 100%; aspect-ratio: 9/16; ${thumbnailStyle}; position: relative;">
+                        ${overlayIndicators}
+                    </div>
                     <div class="time-label">${frame.time.toFixed(1)}s</div>
                     <button class="delete-btn" onclick="event.stopPropagation(); removeFrame(${index})">×</button>
                 `;
@@ -2221,8 +2251,110 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
         }
 
         function selectFrame(index) {
+            // Save current frame's overlay settings before switching
+            saveCurrentFrameOverlay();
+
+            // Switch to new frame
             currentFrame = index;
+
+            // Load overlay settings for the new frame
+            loadFrameOverlay(index);
+
+            // Update frame label in controls panel
+            const frameLabel = document.getElementById('currentFrameLabel');
+            if (frameLabel) {
+                frameLabel.textContent = `Frame ${index + 1}`;
+            }
+
             renderTimeline();
+            updateOverlayPreview();
+        }
+
+        // Save current overlay settings to the frameOverlays array
+        function saveCurrentFrameOverlay() {
+            frameOverlays[currentFrame] = { ...overlaySettings };
+        }
+
+        // Load overlay settings for a specific frame
+        function loadFrameOverlay(frameIndex) {
+            if (frameOverlays[frameIndex]) {
+                overlaySettings = { ...frameOverlays[frameIndex] };
+            } else {
+                // Initialize with defaults for new frames
+                overlaySettings = { ...overlayDefaults };
+                frameOverlays[frameIndex] = { ...overlaySettings };
+            }
+
+            // Update UI to reflect loaded settings
+            updateOverlayUI();
+        }
+
+        // Update UI controls to reflect current overlaySettings
+        function updateOverlayUI() {
+            // Text
+            const textInput = document.getElementById('overlayText');
+            if (textInput) textInput.value = overlaySettings.text || '';
+
+            // Font family
+            const fontSelect = document.getElementById('fontFamilySelect');
+            if (fontSelect) fontSelect.value = overlaySettings.font || 'Gilroy';
+
+            // Font size
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+            if (fontSizeSlider) fontSizeSlider.value = overlaySettings.fontSize || 24;
+            if (fontSizeDisplay) fontSizeDisplay.textContent = overlaySettings.fontSize || 24;
+
+            // Text color
+            const colorPicker = document.getElementById('textColorPicker');
+            if (colorPicker) colorPicker.value = overlaySettings.color || '#FFFFFF';
+
+            // Background
+            const bgSelect = document.getElementById('textBgSelect');
+            if (bgSelect) bgSelect.value = overlaySettings.bgColor || 'rgba(0,0,0,0.7)';
+
+            // Logo checkbox
+            const showLogoCheckbox = document.getElementById('showLogo');
+            if (showLogoCheckbox) {
+                showLogoCheckbox.checked = overlaySettings.showLogo || false;
+                document.getElementById('logoControls').classList.toggle('hidden', !overlaySettings.showLogo);
+            }
+
+            // Logo size
+            const logoSizeSlider = document.getElementById('logoSizeSlider');
+            if (logoSizeSlider) logoSizeSlider.value = overlaySettings.logoSize || 50;
+
+            // Update logo grid selection
+            updateLogoGridSelection();
+        }
+
+        // Update the visual preview of overlays
+        function updateOverlayPreview() {
+            updateTextOverlay();
+
+            // Update logo preview
+            const logoPreview = document.getElementById('logoOverlayPreview');
+            if (logoPreview) {
+                logoPreview.style.display = overlaySettings.showLogo ? 'block' : 'none';
+                if (overlaySettings.showLogo) {
+                    const logoImg = document.getElementById('logoPreviewImg');
+                    if (logoImg) {
+                        logoImg.src = overlaySettings.logoSrc;
+                        logoImg.style.height = overlaySettings.logoSize + 'px';
+                    }
+                }
+            }
+        }
+
+        // Update logo grid to show which is selected
+        function updateLogoGridSelection() {
+            const logoGrid = document.getElementById('logoGrid');
+            if (!logoGrid) return;
+
+            const logoCards = logoGrid.querySelectorAll('.logo-card');
+            logoCards.forEach((card, idx) => {
+                card.classList.toggle('selected', idx === overlaySettings.selectedLogoIndex);
+            });
         }
 
         function removeFrame(index) {
@@ -2231,6 +2363,8 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 return;
             }
             videoData.frames.splice(index, 1);
+            // Also remove the frame's overlay settings
+            frameOverlays.splice(index, 1);
             if (currentFrame >= videoData.frames.length) {
                 currentFrame = videoData.frames.length - 1;
             }
@@ -2241,6 +2375,21 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
             removeFrame(currentFrame);
         }
 
+        // Copy current frame's overlay settings to all frames
+        function copyOverlayToAllFrames() {
+            if (!videoData || !videoData.frames) return;
+
+            const currentSettings = { ...overlaySettings };
+            const frameCount = videoData.frames.length;
+
+            for (let i = 0; i < frameCount; i++) {
+                frameOverlays[i] = { ...currentSettings };
+            }
+
+            renderTimeline();
+            alert(`Text and logo settings applied to all ${frameCount} frames!`);
+        }
+
         function updateSpeed(value) {
             document.getElementById('speedDisplay').textContent = value + 'x';
         }
@@ -2249,6 +2398,10 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
         function updateTextOverlay() {
             const text = document.getElementById('overlayText').value;
             overlaySettings.text = text;
+
+            // Save to current frame's overlays
+            saveCurrentFrameOverlay();
+            renderTimeline(); // Update timeline indicators
 
             const preview = document.getElementById('textOverlayPreview');
             const display = document.getElementById('overlayTextDisplay');
@@ -2320,6 +2473,10 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
         function toggleLogo() {
             const show = document.getElementById('showLogo').checked;
             overlaySettings.showLogo = show;
+
+            // Save to current frame's overlays
+            saveCurrentFrameOverlay();
+            renderTimeline(); // Update timeline indicators
 
             document.getElementById('logoControls').classList.toggle('hidden', !show);
             document.getElementById('logoOverlayPreview').style.display = show ? 'block' : 'none';
@@ -2566,10 +2723,13 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
             canvas.height = 320;
 
             let captured = 0;
+            let isCapturing = true; // Flag to prevent runaway captures
 
             function captureNextThumbnail() {
-                if (captured >= thumbnailCount) {
-                    // All thumbnails captured, render them
+                if (!isCapturing || captured >= thumbnailCount) {
+                    // All thumbnails captured, clean up and render them
+                    isCapturing = false;
+                    video.onseeked = null; // IMPORTANT: Clear the handler to prevent 200+ thumbnails
                     video.currentTime = 0;
                     renderCapturedThumbnails(grid, thumbnails);
                     return;
@@ -2578,7 +2738,12 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 video.currentTime = captured * interval + 0.1; // Small offset to avoid black frames
             }
 
-            video.onseeked = function() {
+            // Store the handler so we can properly clean it up
+            const seekHandler = function() {
+                if (!isCapturing || captured >= thumbnailCount) {
+                    video.onseeked = null;
+                    return;
+                }
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 thumbnails.push({
                     dataUrl: canvas.toDataURL('image/jpeg', 0.8),
@@ -2588,6 +2753,7 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 captureNextThumbnail();
             };
 
+            video.onseeked = seekHandler;
             captureNextThumbnail();
         }
 
