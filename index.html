@@ -1,0 +1,2991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BriteCo Video Ad Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #008182;
+            color: #272D3F;
+        }
+
+        header {
+            background: #272D3F;
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .logo span {
+            color: #31D7CA;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #272D3F;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #272D3F;
+        }
+
+        .platform-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .platform-card {
+            border: 3px solid #E1E7EF;
+            border-radius: 12px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .platform-card:hover {
+            border-color: #31D7CA;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(49, 215, 202, 0.2);
+        }
+
+        .platform-card.selected {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+            box-shadow: 0 4px 12px rgba(49, 215, 202, 0.3);
+        }
+
+        .platform-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #FC883A;
+            color: white;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            margin-top: 2rem;
+        }
+
+        .btn-primary:hover {
+            background: #e77a33;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(252, 136, 58, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #008182;
+            color: white;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            margin-top: 2rem;
+        }
+
+        .btn-secondary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 129, 130, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #E1E7EF;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        textarea {
+            min-height: 150px;
+        }
+
+        textarea:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #31D7CA;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #272D3F;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0;
+        }
+
+        footer {
+            background: #272D3F;
+            color: #A9C1CB;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(39, 45, 63, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #E1E7EF;
+            border-top-color: #31D7CA;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #E1E7EF;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #31D7CA 0%, #28B8AC 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Duration selector */
+        .duration-selector {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .duration-option {
+            flex: 1;
+            padding: 1.5rem;
+            border: 3px solid #E1E7EF;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .duration-option:hover {
+            border-color: #31D7CA;
+            transform: translateY(-2px);
+        }
+
+        .duration-option.selected {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+        }
+
+        .duration-option .time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #272D3F;
+        }
+
+        .duration-option .label {
+            font-size: 0.9rem;
+            color: #7DA3AF;
+            margin-top: 0.25rem;
+        }
+
+        /* Motion style selector */
+        .motion-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .motion-option {
+            padding: 1.5rem;
+            border: 3px solid #E1E7EF;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .motion-option:hover {
+            border-color: #31D7CA;
+            transform: translateY(-2px);
+        }
+
+        .motion-option.selected {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+        }
+
+        .motion-option .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .motion-option .name {
+            font-weight: 600;
+            color: #272D3F;
+        }
+
+        /* Video Preview */
+        .video-preview-container {
+            position: relative;
+            background: #272D3F;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 9/16;
+            max-width: 350px;
+        }
+
+        .video-preview-container.landscape {
+            aspect-ratio: 16/9;
+            max-width: 100%;
+        }
+
+        .video-preview-container.square {
+            aspect-ratio: 1/1;
+            max-width: 400px;
+        }
+
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .video-placeholder svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .video-placeholder p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+        }
+
+        /* Timeline/Frames */
+        .timeline-container {
+            background: #F4F7FC;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .timeline-frames {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .timeline-frame {
+            flex-shrink: 0;
+            width: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .timeline-frame:hover {
+            border-color: #31D7CA;
+        }
+
+        .timeline-frame.selected {
+            border-color: #31D7CA;
+        }
+
+        .timeline-frame .time-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.25rem;
+            text-align: center;
+        }
+
+        .timeline-frame .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #D73D4F;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: none;
+        }
+
+        .timeline-frame:hover .delete-btn {
+            display: block;
+        }
+
+        /* Thumbnail grid */
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .thumbnail-option {
+            border: 3px solid #E1E7EF;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .thumbnail-option:hover {
+            border-color: #31D7CA;
+        }
+
+        .thumbnail-option.selected {
+            border-color: #31D7CA;
+        }
+
+        .thumbnail-option .label {
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #7DA3AF;
+            background: #F4F7FC;
+        }
+
+        /* Controls panel */
+        .controls-panel {
+            background: #F4F7FC;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .controls-panel h4 {
+            color: #272D3F;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            color: #7DA3AF;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .color-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .color-btn {
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #E1E7EF;
+            margin: 1.5rem 0;
+        }
+
+        /* Ad Copy section */
+        .copy-section {
+            background: #F4F7FC;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .copy-label {
+            color: #31D7CA;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Final review */
+        .final-copy-display {
+            background: #F4F7FC;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .copy-item {
+            margin-bottom: 1rem;
+        }
+
+        .copy-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .copy-item-label {
+            color: #31D7CA;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .copy-item-value {
+            color: #272D3F;
+            line-height: 1.5;
+        }
+
+        .copy-item-value.highlight {
+            font-weight: 600;
+            color: #FC883A;
+        }
+
+        /* Image upload area */
+        .image-upload-area {
+            border: 3px dashed #E1E7EF;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .image-upload-area:hover {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+        }
+
+        /* Mode toggle buttons */
+        .mode-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border: 2px solid #E1E7EF;
+            border-radius: 8px;
+            background: white;
+            color: #7DA3AF;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-toggle-btn:hover {
+            border-color: #31D7CA;
+            color: #31D7CA;
+        }
+
+        .mode-toggle-btn.active {
+            border-color: #31D7CA;
+            background: #31D7CA;
+            color: white;
+        }
+
+        .mode-toggle-btn svg {
+            flex-shrink: 0;
+        }
+
+        /* Logo grid */
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .logo-option {
+            background: white;
+            border: 2px solid #E1E7EF;
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .logo-option:hover {
+            border-color: #31D7CA;
+        }
+
+        .logo-option.selected {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+        }
+
+        .logo-option img {
+            max-width: 100%;
+            max-height: 40px;
+            object-fit: contain;
+        }
+
+        /* Font selector */
+        .font-option {
+            padding: 0.5rem 1rem;
+            border: 2px solid #E1E7EF;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .font-option:hover {
+            border-color: #31D7CA;
+        }
+
+        .font-option.selected {
+            border-color: #31D7CA;
+            background: #F4F7FC;
+        }
+
+        /* Color picker input */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* Video scrubber */
+        .video-scrubber {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .video-scrubber input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #E1E7EF;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .video-scrubber input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #31D7CA;
+            cursor: pointer;
+        }
+
+        /* Draggable overlays */
+        .draggable-overlay {
+            cursor: move !important;
+            user-select: none;
+            transition: box-shadow 0.2s;
+            z-index: 10;
+        }
+
+        .draggable-overlay:hover {
+            box-shadow: 0 0 0 3px #31D7CA, 0 4px 12px rgba(49, 215, 202, 0.4);
+        }
+
+        .draggable-overlay.dragging {
+            opacity: 0.9;
+            box-shadow: 0 0 0 3px #31D7CA, 0 8px 20px rgba(0,0,0,0.3);
+            z-index: 100 !important;
+        }
+
+        .draggable-overlay .drag-handle {
+            opacity: 1;
+        }
+
+        /* Two column layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .two-column-equal {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .two-column, .two-column-equal {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo" onclick="startOver()" style="cursor: pointer;">
+                <span>BriteCo</span> Video Ad Generator
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Step 1: Platform Selection -->
+        <div id="step1" class="card" style="padding: 0; overflow: hidden;">
+            <!-- Navy Title Bar -->
+            <div style="background: #272D3F; padding: 1.5rem 2.5rem;">
+                <h1 style="color: white; margin-bottom: 0.5rem;">Select Your Platform</h1>
+                <p style="color: rgba(255,255,255,0.7); font-size: 1.1rem; margin: 0;">
+                    Choose where your video ad will run. We'll optimize for that platform's specs.
+                </p>
+            </div>
+
+            <!-- White Content Area -->
+            <div style="padding: 2rem 2.5rem;">
+                <div class="platform-selector">
+                    <div class="platform-card" onclick="togglePlatform('meta', this)">
+                        <h3><svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" fill="#1877F2"/></svg>Meta Reels</h3>
+                        <p style="color: #7DA3AF; margin-top: 0.5rem;">Instagram & Facebook Reels</p>
+                        <p style="color: #A9C1CB; font-size: 0.9rem; margin-top: 0.5rem;">9:16 vertical | 5-90 sec</p>
+                    </div>
+
+                    <div class="platform-card" onclick="togglePlatform('tiktok', this)">
+                        <h3><svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" fill="#000"/></svg>TikTok</h3>
+                        <p style="color: #7DA3AF; margin-top: 0.5rem;">TikTok Feed Ads</p>
+                        <p style="color: #A9C1CB; font-size: 0.9rem; margin-top: 0.5rem;">9:16 vertical | 5-60 sec</p>
+                    </div>
+
+                    <div class="platform-card" onclick="togglePlatform('pinterest', this)">
+                        <h3><svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.237 2.636 7.855 6.356 9.312-.088-.791-.167-2.005.035-2.868.181-.78 1.172-4.97 1.172-4.97s-.299-.598-.299-1.482c0-1.388.805-2.425 1.808-2.425.852 0 1.264.64 1.264 1.408 0 .858-.546 2.14-.828 3.33-.236.995.5 1.807 1.48 1.807 1.778 0 3.144-1.874 3.144-4.58 0-2.393-1.72-4.068-4.177-4.068-2.845 0-4.515 2.135-4.515 4.34 0 .859.331 1.781.745 2.281.082.1.094.187.069.288-.076.316-.245 1.002-.278 1.141-.044.183-.145.222-.335.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.473 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.965-.527-2.292-1.148l-.623 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="#E60023"/></svg>Pinterest</h3>
+                        <p style="color: #7DA3AF; margin-top: 0.5rem;">Idea Pin Videos</p>
+                        <p style="color: #A9C1CB; font-size: 0.9rem; margin-top: 0.5rem;">9:16, 1:1, 2:3 | 4-15 sec</p>
+                    </div>
+
+                    <div class="platform-card" onclick="togglePlatform('reddit', this)">
+                        <h3><svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#FF4500"/><path d="M16.5 12c0-.55-.45-1-1-1-.27 0-.52.11-.7.29-.69-.45-1.63-.74-2.68-.78l.54-2.5 1.73.37c.02.55.47.99 1.03.99.57 0 1.03-.46 1.03-1.03s-.46-1.03-1.03-1.03c-.4 0-.75.23-.92.57l-1.94-.42c-.12-.03-.24.06-.27.18l-.6 2.8c-1.07.03-2.03.32-2.73.78-.18-.18-.43-.29-.7-.29-.55 0-1 .45-1 1 0 .41.25.76.6.91-.02.13-.03.26-.03.4 0 2.04 2.37 3.69 5.3 3.69s5.3-1.65 5.3-3.69c0-.14-.01-.27-.03-.4.35-.15.6-.5.6-.91z" fill="white"/></svg>Reddit</h3>
+                        <p style="color: #7DA3AF; margin-top: 0.5rem;">Video Ads</p>
+                        <p style="color: #A9C1CB; font-size: 0.9rem; margin-top: 0.5rem;">16:9, 1:1 | 5-30 sec</p>
+                    </div>
+
+                    <div class="platform-card" onclick="togglePlatform('general', this)">
+                        <h3><svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#31D7CA" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#31D7CA"/></svg>General Video</h3>
+                        <p style="color: #7DA3AF; margin-top: 0.5rem;">Custom video creation</p>
+                        <p style="color: #A9C1CB; font-size: 0.9rem; margin-top: 0.5rem;">9:16 portrait | 5 sec</p>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="continueBtn" onclick="goToStep2()" disabled>
+                    Continue to Inspiration
+                </button>
+            </div>
+
+            <!-- Past Projects Section (Step 1 only) -->
+            <div style="background: #466F88; padding: 2rem 2.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="color: white; font-size: 1.5rem; margin: 0;">Past Projects</h2>
+                    <button class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: white;">
+                        View All
+                    </button>
+                </div>
+
+                <div class="projects-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+                    <!-- Project Card 1 -->
+                    <div class="project-card" style="background: #F8FAFB; border-radius: 12px; padding: 1.25rem; border: 1px solid #E1E7EF;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h3 style="color: #272D3F; font-size: 1rem; margin: 0; font-weight: 600;">Holiday Campaign 2025</h3>
+                            <span style="background: #31D7CA; color: white; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">Meta Reels</span>
+                        </div>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0 0 1rem 0;">Dec 15, 2025</p>
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <polygon points="23 7 16 12 23 17 23 7"/>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">3 videos</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">5 ads</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Card 2 -->
+                    <div class="project-card" style="background: #F8FAFB; border-radius: 12px; padding: 1.25rem; border: 1px solid #E1E7EF;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h3 style="color: #272D3F; font-size: 1rem; margin: 0; font-weight: 600;">Engagement Ring Promo</h3>
+                            <span style="background: #272D3F; color: white; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">TikTok</span>
+                        </div>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0 0 1rem 0;">Dec 8, 2025</p>
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <polygon points="23 7 16 12 23 17 23 7"/>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">2 videos</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">8 ads</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Card 3 -->
+                    <div class="project-card" style="background: #F8FAFB; border-radius: 12px; padding: 1.25rem; border: 1px solid #E1E7EF;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h3 style="color: #272D3F; font-size: 1rem; margin: 0; font-weight: 600;">Valentine's Day 2026</h3>
+                            <span style="background: #E74C8C; color: white; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">Pinterest</span>
+                        </div>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0 0 1rem 0;">Jan 5, 2026</p>
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <polygon points="23 7 16 12 23 17 23 7"/>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">4 videos</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">12 ads</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="2">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                    <line x1="1" y1="10" x2="23" y2="10"/>
+                                </svg>
+                                <span style="color: #7DA3AF; font-size: 0.85rem;">6 GIFs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; text-align: center; margin-top: 1.5rem; font-style: italic;">
+                    Past projects will be saved here automatically. Coming soon!
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 2: Inspiration -->
+        <div id="step2" class="card hidden">
+            <h1>Describe Your Video Ad</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Tell us about your campaign and we'll generate a video concept.</p>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Campaign Description</label>
+                <textarea id="campaignText" placeholder="Example: Promote our jewelry insurance for newly engaged couples. Show a romantic moment where a couple admires an engagement ring. Highlight the peace of mind that comes with protecting precious jewelry."></textarea>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Reference Images (Optional)</label>
+                <div class="image-upload-area" onclick="document.getElementById('imageUpload').click()">
+                    <input type="file" id="imageUpload" accept="image/*" multiple style="display: none;">
+                    <p style="color: #7DA3AF;">Drag & drop images or click to upload</p>
+                    <p style="color: #A9C1CB; font-size: 0.85rem; margin-top: 0.5rem;">These will influence the video style</p>
+                </div>
+                <div id="uploadedImages" style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;"></div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Video Duration</label>
+                <div class="duration-selector">
+                    <div class="duration-option" onclick="selectDuration(4, this)">
+                        <div class="time">4s</div>
+                        <div class="label">Quick</div>
+                    </div>
+                    <div class="duration-option selected" onclick="selectDuration(6, this)">
+                        <div class="time">6s</div>
+                        <div class="label">Standard</div>
+                    </div>
+                    <div class="duration-option" onclick="selectDuration(8, this)">
+                        <div class="time">8s</div>
+                        <div class="label">Extended</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Motion Style</label>
+                <div class="motion-grid">
+                    <div class="motion-option selected" onclick="selectMotion('smooth', this)">
+                        <div class="icon">🎬</div>
+                        <div class="name">Smooth Pan</div>
+                    </div>
+                    <div class="motion-option" onclick="selectMotion('zoom', this)">
+                        <div class="icon">🔍</div>
+                        <div class="name">Slow Zoom</div>
+                    </div>
+                    <div class="motion-option" onclick="selectMotion('dynamic', this)">
+                        <div class="icon">⚡</div>
+                        <div class="name">Dynamic</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>AI Provider for Prompt Generation</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+                    <div class="platform-card selected" id="aiProviderClaude" onclick="selectAIProvider('claude', this)" style="padding: 1.25rem;">
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">Claude</h3>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0;">Anthropic Claude (Recommended)</p>
+                    </div>
+                    <div class="platform-card" id="aiProviderOpenai" onclick="selectAIProvider('openai', this)" style="padding: 1.25rem;">
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">ChatGPT</h3>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0;">OpenAI GPT-4o</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep1()">Back</button>
+                <button class="btn-primary" onclick="generateVideoPrompt()">Generate Video Concept</button>
+            </div>
+        </div>
+
+        <!-- Step 3: AI Prompt -->
+        <div id="step3" class="card hidden">
+            <h1>Video Concept</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Review and edit the AI-generated video concept.</p>
+
+            <!-- Image-to-Video Toggle -->
+            <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 style="color: #272D3F; margin: 0 0 0.5rem 0; font-size: 1.1rem;">Generation Mode</h3>
+                        <p style="color: #7DA3AF; font-size: 0.9rem; margin: 0;">Choose how to generate your video</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="textToVideoBtn" class="mode-toggle-btn active" onclick="setVideoMode('text')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+                            </svg>
+                            Text to Video
+                        </button>
+                        <button id="imageToVideoBtn" class="mode-toggle-btn" onclick="setVideoMode('image')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            Image to Video
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Image Upload for Image-to-Video -->
+                <div id="imageToVideoSection" class="hidden" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #E1E7EF;">
+                    <label style="display: block; margin-bottom: 0.5rem;">Source Image</label>
+                    <div class="image-upload-area" onclick="document.getElementById('videoSourceImage').click()" style="margin-bottom: 0;">
+                        <input type="file" id="videoSourceImage" accept="image/*" style="display: none;" onchange="handleVideoSourceImage(this)">
+                        <div id="videoSourceImagePreview" style="display: none;">
+                            <img id="videoSourceImageImg" src="" alt="Source" style="max-height: 200px; border-radius: 8px;">
+                            <p style="color: #31D7CA; font-size: 0.85rem; margin-top: 0.5rem;">Click to change image</p>
+                        </div>
+                        <div id="videoSourceImagePlaceholder">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <p style="color: #7DA3AF; margin-top: 0.5rem;">Click to upload an image to animate</p>
+                            <p style="color: #A9C1CB; font-size: 0.85rem;">This image will be transformed into video</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Video Prompt</label>
+                <textarea id="videoPrompt" placeholder="AI-generated video prompt will appear here..."></textarea>
+                <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.5rem;">
+                    Tip: Include motion descriptions like "camera slowly pans", "gentle zoom in", "subject turns slightly"
+                </p>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Video Generator</label>
+                <select id="videoProvider">
+                    <option value="veo" selected>Google Veo 3.1 (Recommended)</option>
+                    <option value="runway">Runway (veo3.1 / gen4_turbo)</option>
+                    <option value="mock">Mock (No API)</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep2()">Back</button>
+                <button class="btn-secondary" onclick="regeneratePrompt()">Regenerate</button>
+                <button class="btn-primary" onclick="generateVideo()">Generate Video</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Video Preview & Edit -->
+        <div id="step4" class="card hidden">
+            <h1>Edit Your Video</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Add text overlays, logo, and adjust timing.</p>
+
+            <div class="two-column">
+                <!-- Video Preview -->
+                <div>
+                    <div class="video-preview-container" id="videoPreviewContainer">
+                        <div class="video-placeholder" id="videoPlaceholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <polygon points="5,3 19,12 5,21" />
+                            </svg>
+                            <p>Video preview will appear here</p>
+                        </div>
+                        <video id="videoPlayer" style="width: 100%; height: 100%; object-fit: cover; display: none;" loop muted></video>
+                        <!-- Text overlay - DRAGGABLE -->
+                        <div id="textOverlayPreview" class="draggable-overlay" style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); display: none; cursor: move;">
+                            <div id="textOverlayBg" style="background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 8px;">
+                                <p id="overlayTextDisplay" style="color: white; font-weight: 700; font-size: 24px; margin: 0; white-space: nowrap;"></p>
+                            </div>
+                            <div class="drag-handle" style="position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: #31D7CA; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                        </div>
+                        <!-- Logo overlay - DRAGGABLE -->
+                        <div id="logoOverlayPreview" class="draggable-overlay" style="position: absolute; bottom: 20px; right: 20px; display: none; cursor: move;">
+                            <img id="logoPreviewImg" src="" alt="Logo" style="height: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                            <div class="drag-handle" style="position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: #FC883A; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="timeline-container">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="color: #272D3F; margin: 0;">Timeline</h4>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 0.85rem; color: #7DA3AF;">Speed:</span>
+                                <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1" style="width: 100px;" oninput="updateSpeed(this.value)">
+                                <span id="speedDisplay" style="font-size: 0.85rem; color: #272D3F; min-width: 40px;">1.0x</span>
+                            </div>
+                        </div>
+                        <div class="timeline-frames" id="timelineFrames">
+                            <!-- Frames will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-panel">
+                    <h4>Text Overlay</h4>
+
+                    <div class="control-group">
+                        <label class="control-label">Text:</label>
+                        <input type="text" id="overlayText" placeholder="Enter text..." oninput="updateTextOverlay()">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Font Family</label>
+                        <select id="fontFamilySelect" onchange="setTextFontFromSelect(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #E1E7EF; border-radius: 8px; font-size: 0.9rem; background: white;">
+                            <option value="Gilroy" selected>Gilroy (Brand Font)</option>
+                            <option value="Georgia">Georgia (Serif)</option>
+                            <option value="Arial">Arial (Sans-serif)</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="monospace">Monospace</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Font Size (<span id="fontSizeDisplay">24</span>px)</label>
+                        <input type="range" id="fontSizeSlider" min="12" max="48" value="24" oninput="updateFontSize(this.value)" style="width: 100%;">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Text Color</label>
+                        <input type="color" id="textColorPicker" value="#FFFFFF" onchange="setTextColor(this.value)" style="width: 100%; height: 40px; border: 1px solid #E1E7EF; border-radius: 8px; cursor: pointer;">
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Background</label>
+                        <select id="textBgSelect" onchange="setTextBgFromSelect(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #E1E7EF; border-radius: 8px; font-size: 0.9rem; background: white;">
+                            <option value="rgba(0,0,0,0.7)" selected>Dark (70% opacity)</option>
+                            <option value="rgba(0,0,0,0.5)">Dark (50% opacity)</option>
+                            <option value="rgba(255,255,255,0.9)">Light (90% opacity)</option>
+                            <option value="rgba(255,255,255,0.7)">Light (70% opacity)</option>
+                            <option value="transparent">None (Transparent)</option>
+                        </select>
+                    </div>
+
+                    <hr class="divider">
+
+                    <h4>Logo Settings</h4>
+
+                    <div class="control-group">
+                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                            <input type="checkbox" id="showLogo" onchange="toggleLogo()" style="margin-right: 0.5rem; width: auto;">
+                            Add Logo
+                        </label>
+                    </div>
+
+                    <div id="logoControls" class="hidden">
+                        <div class="control-group">
+                            <label class="control-label">Select Logo/Emblem</label>
+                            <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                                <!-- Logos will be populated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label">Logo Size</label>
+                            <input type="range" id="logoSizeSlider" min="30" max="120" value="50" oninput="updateLogoSize(this.value)" style="width: 100%;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #7DA3AF;">
+                                <span>Smaller</span>
+                                <span>Larger</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="divider">
+
+                    <button class="btn-secondary" style="width: 100%; margin-top: 0; padding: 0.75rem;" onclick="removeCurrentFrame()">
+                        Remove Selected Frame
+                    </button>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep3()">Back</button>
+                <button class="btn-primary" onclick="goToStep5()">Continue to Thumbnail</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Thumbnail Generator -->
+        <div id="step5" class="card hidden">
+            <h1>Select Thumbnail</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Choose a thumbnail for your video ad.</p>
+
+            <div class="two-column-equal">
+                <div>
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Auto-Generated Thumbnails</h3>
+                    <p style="color: #7DA3AF; font-size: 0.9rem; margin-bottom: 1rem;">Select from key frames or scrub through the video.</p>
+
+                    <div class="thumbnail-grid" id="thumbnailGrid">
+                        <!-- Thumbnails will be populated here -->
+                    </div>
+
+                    <!-- Video Scrubber for custom frame selection -->
+                    <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
+                        <h4 style="color: #272D3F; margin: 0 0 1rem 0; font-size: 1rem;">Scrub Video for Custom Frame</h4>
+                        <div id="scrubberVideoContainer" style="position: relative; margin-bottom: 1rem;">
+                            <video id="scrubberVideo" style="width: 100%; border-radius: 8px; background: #272D3F;" muted></video>
+                            <div id="scrubberPlaceholder" style="aspect-ratio: 16/9; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Video preview</p>
+                            </div>
+                        </div>
+                        <div class="video-scrubber">
+                            <input type="range" id="videoScrubber" min="0" max="100" value="0" oninput="scrubVideo(this.value)">
+                            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                                <span id="scrubberTime" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
+                                <span id="scrubberDuration" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
+                            </div>
+                        </div>
+                        <button class="btn-secondary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" onclick="captureCurrentFrame()">
+                            Capture This Frame as Thumbnail
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <button class="btn-secondary" style="width: 100%; margin-top: 0;" onclick="document.getElementById('customThumbnail').click()">
+                            Upload Custom Thumbnail
+                        </button>
+                        <input type="file" id="customThumbnail" accept="image/*" style="display: none;" onchange="handleCustomThumbnail(this)">
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Preview</h3>
+                    <div style="background: #F4F7FC; border-radius: 12px; padding: 1rem;">
+                        <div id="thumbnailPreview" style="aspect-ratio: 9/16; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center; max-width: 300px; overflow: hidden;">
+                            <p style="color: rgba(255,255,255,0.5);">Select a thumbnail</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep4()">Back</button>
+                <button class="btn-primary" id="continueToAdCopyBtn" onclick="goToStep6()">Continue to Ad Copy</button>
+            </div>
+        </div>
+
+        <!-- Step 6: Ad Copy -->
+        <div id="step6" class="card hidden">
+            <h1>Generate Ad Copy</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;" id="adCopySubtitle">AI-generated copy for your video ad campaign.</p>
+
+            <!-- Platform Ad Specs Info -->
+            <div id="platformSpecsInfo" class="hidden" style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="color: #272D3F; margin: 0 0 0.5rem 0; font-size: 1.1rem;" id="platformSpecsTitle">Platform Specifications</h3>
+                <p style="color: #7DA3AF; font-size: 0.9rem; margin: 0;" id="platformSpecsDesc"></p>
+            </div>
+
+            <div id="adCopyContainer">
+                <!-- Ad copy will be populated here -->
+            </div>
+
+            <div class="button-group">
+                <button class="btn-secondary" onclick="goToStep5()">Back</button>
+                <button class="btn-secondary" id="regenerateCopyBtn" onclick="regenerateAdCopy()">Regenerate Copy</button>
+                <button class="btn-primary" onclick="goToStep7()">Review & Export</button>
+            </div>
+        </div>
+
+        <!-- Step 7: Final Review -->
+        <div id="step7" class="card hidden">
+            <h1>Review & Export</h1>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Your video ad is ready! Review and download.</p>
+
+            <div class="two-column-equal">
+                <!-- Video Preview -->
+                <div>
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Final Video</h3>
+                    <div class="video-preview-container" id="finalVideoContainer" style="position: relative;">
+                        <video id="finalVideoPlayer" style="width: 100%; height: 100%; object-fit: cover;" loop muted controls></video>
+                        <!-- Text overlay for final preview -->
+                        <div id="finalTextOverlay" style="position: absolute; display: none; pointer-events: none;"></div>
+                        <!-- Logo overlay for final preview -->
+                        <div id="finalLogoOverlay" style="position: absolute; display: none; pointer-events: none;"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <button class="btn-primary" onclick="downloadVideo()" style="margin-top: 0; padding: 0.75rem 1rem; font-size: 0.9rem;">
+                            Download MP4
+                        </button>
+                        <button class="btn-secondary" onclick="downloadThumbnail()" style="margin-top: 0; padding: 0.75rem 1rem; font-size: 0.9rem;">
+                            Download Thumbnail
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ad Copy Summary -->
+                <div>
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Ad Copy</h3>
+                    <div id="finalAdCopy" class="final-copy-display">
+                        <!-- Copy summary will appear here -->
+                    </div>
+
+                    <button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="copyAllText()">
+                        Copy All Text
+                    </button>
+                </div>
+            </div>
+
+            <div class="button-group" style="margin-top: 2rem;">
+                <button class="btn-secondary" onclick="goToStep6()">Back</button>
+                <button class="btn-primary" onclick="startOver()">
+                    Start New Video
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h2 style="color: #272D3F; margin-bottom: 1rem;" id="loadingTitle">Generating Video</h2>
+            <p style="color: #7DA3AF; font-size: 1.1rem;" id="loadingMessage">This may take 1-2 minutes...</p>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+            <p style="color: #A9C1CB; font-size: 0.85rem; margin-top: 1rem;" id="progressText">Starting...</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 BriteCo. Internal use only.</p>
+        <p style="margin-top: 0.5rem;">Powered by Claude AI & Runway/Veo</p>
+    </footer>
+
+    <script>
+        // State
+        let selectedPlatform = null;
+        let selectedDuration = 6;
+        let selectedMotion = 'smooth';
+        let videoData = null;
+        let currentFrame = 0;
+        let overlaySettings = {
+            text: '',
+            position: 'bottom-center',
+            color: '#FFFFFF',
+            bgColor: 'rgba(0,0,0,0.7)',
+            font: 'Gilroy',
+            fontSize: 24,
+            showLogo: false,
+            logoPosition: 'bottom-right',
+            logoSrc: '/Logo-BriteCo-Solid-Color-01.png',
+            logoSize: 50,
+            selectedLogoIndex: 0,
+            // Custom drag positions (as percentages)
+            textCustomX: null,
+            textCustomY: null,
+            logoCustomX: null,
+            logoCustomY: null
+        };
+        let selectedThumbnail = null;
+        let adCopyOptions = [];  // Store 3 ad copy options
+        let selectedAdCopyIndex = 0;
+        let adCopy = {
+            headline: '',
+            body: '',
+            cta: ''
+        };
+        let videoMode = 'text';  // 'text' or 'image'
+        let videoSourceImageData = null;  // Base64 image for image-to-video
+        let selectedAIProvider = 'claude';  // 'claude' or 'openai'
+
+        // Available logos from project folder (matching ad generator)
+        const availableLogos = [
+            { src: '/Logo-BriteCo-Solid-Color-01.png', name: 'BriteCo Logo 1' },
+            { src: '/Logo-BriteCo-Solid-Color-02.png', name: 'BriteCo Logo 2' },
+            { src: '/Logo-BriteCo-Solid-Color-03.png', name: 'BriteCo Logo 3' },
+            { src: '/Logo-BriteCo-Solid-Color-04.png', name: 'BriteCo Logo 4' },
+            { src: '/Emblem-01.png', name: 'Emblem 1' },
+            { src: '/Emblem-02.png', name: 'Emblem 2' },
+            { src: '/White%20and%20Teal-Jewelry-Watch-Insurance-RGB.png', name: 'White & Teal' },
+            { src: '/Blue%20and%20Teal-Jewelry-Watch-Insurance-RGB.png', name: 'Blue & Teal' },
+            { src: '/Blue%20and%20white-Jewelry-Watch-Insurance-RGB.png', name: 'Blue & White' },
+            { src: '/Blue-Jewelry-Watch-Insurance-RGB.png', name: 'Blue RGB' }
+        ];
+
+        // Platform specs
+        const platformSpecs = {
+            meta: { name: 'Meta Reels', aspect: '9:16', width: 1080, height: 1920, maxDuration: 90 },
+            tiktok: { name: 'TikTok', aspect: '9:16', width: 1080, height: 1920, maxDuration: 60 },
+            pinterest: { name: 'Pinterest', aspect: '9:16', width: 1080, height: 1920, maxDuration: 15 },
+            reddit: { name: 'Reddit', aspect: '16:9', width: 1920, height: 1080, maxDuration: 30 },
+            general: { name: 'General Video', aspect: '9:16', width: 1080, height: 1920, maxDuration: 60 }
+        };
+
+        // Platform selection
+        function togglePlatform(platform, element) {
+            document.querySelectorAll('.platform-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedPlatform = platform;
+            document.getElementById('continueBtn').disabled = false;
+        }
+
+        // Duration selection
+        function selectDuration(duration, element) {
+            document.querySelectorAll('.duration-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedDuration = duration;
+        }
+
+        // Motion selection
+        function selectMotion(motion, element) {
+            document.querySelectorAll('.motion-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedMotion = motion;
+        }
+
+        // AI provider selection
+        function selectAIProvider(provider, element) {
+            selectedAIProvider = provider;
+            document.getElementById('aiProviderClaude').classList.toggle('selected', provider === 'claude');
+            document.getElementById('aiProviderOpenai').classList.toggle('selected', provider === 'openai');
+        }
+
+        // Video mode toggle (text-to-video vs image-to-video)
+        function setVideoMode(mode) {
+            videoMode = mode;
+            document.getElementById('textToVideoBtn').classList.toggle('active', mode === 'text');
+            document.getElementById('imageToVideoBtn').classList.toggle('active', mode === 'image');
+            document.getElementById('imageToVideoSection').classList.toggle('hidden', mode !== 'image');
+        }
+
+        // Handle video source image upload
+        function handleVideoSourceImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    videoSourceImageData = e.target.result;
+                    document.getElementById('videoSourceImageImg').src = e.target.result;
+                    document.getElementById('videoSourceImagePreview').style.display = 'block';
+                    document.getElementById('videoSourceImagePlaceholder').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Logo grid initialization (card style matching ad generator)
+        function initializeLogoGrid() {
+            const grid = document.getElementById('logoGrid');
+            if (!grid) return;
+
+            grid.innerHTML = '';
+            availableLogos.forEach((logo, index) => {
+                const logoEl = document.createElement('div');
+                logoEl.className = 'logo-card' + (index === 0 ? ' selected' : '');
+                logoEl.onclick = () => selectLogo(logo.src, logoEl, index);
+                logoEl.style.cssText = 'padding: 0.75rem; border: 2px solid #E1E7EF; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 60px; transition: all 0.2s;';
+                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 40px; object-fit: contain;">`;
+                grid.appendChild(logoEl);
+            });
+        }
+
+        // Select logo
+        function selectLogo(src, element, index) {
+            document.querySelectorAll('.logo-card').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.style.borderColor = '#E1E7EF';
+            });
+            element.classList.add('selected');
+            element.style.borderColor = '#31D7CA';
+            overlaySettings.logoSrc = src;
+            overlaySettings.selectedLogoIndex = index;
+            document.getElementById('logoPreviewImg').src = src;
+        }
+
+        // Set text font from dropdown
+        function setTextFontFromSelect(font) {
+            overlaySettings.font = font;
+            updateTextOverlay();
+        }
+
+        // Set text font (legacy)
+        function setTextFont(font, element) {
+            document.querySelectorAll('.font-option').forEach(opt => opt.classList.remove('selected'));
+            if (element) element.classList.add('selected');
+            overlaySettings.font = font;
+            updateTextOverlay();
+        }
+
+        // Update font size
+        function updateFontSize(size) {
+            overlaySettings.fontSize = parseInt(size);
+            document.getElementById('fontSizeDisplay').textContent = size;
+            const display = document.getElementById('overlayTextDisplay');
+            if (display) {
+                display.style.fontSize = size + 'px';
+            }
+        }
+
+        // Set text background from dropdown
+        function setTextBgFromSelect(value) {
+            overlaySettings.bgColor = value;
+            updateTextOverlay();
+        }
+
+        // Set text background color (legacy)
+        function setTextBgColor(color) {
+            overlaySettings.bgColor = color;
+            updateTextOverlay();
+        }
+
+        // Set text position (enhanced 9-position grid)
+        function setTextPosition(position) {
+            overlaySettings.position = position;
+            // Reset custom drag position when using preset
+            overlaySettings.textCustomX = null;
+            overlaySettings.textCustomY = null;
+
+            // Update button states
+            document.querySelectorAll('.pos-btn').forEach(btn => {
+                btn.style.background = 'transparent';
+                btn.style.color = '#272D3F';
+            });
+            event.target.style.background = '#31D7CA';
+            event.target.style.color = 'white';
+
+            // Update display
+            const posNames = {
+                'top-left': 'Top Left', 'top-center': 'Top Center', 'top-right': 'Top Right',
+                'middle-left': 'Middle Left', 'middle-center': 'Middle Center', 'middle-right': 'Middle Right',
+                'bottom-left': 'Bottom Left', 'bottom-center': 'Bottom Center', 'bottom-right': 'Bottom Right'
+            };
+            document.getElementById('textPosDisplay').textContent = posNames[position] || position;
+
+            updateTextOverlay();
+        }
+
+        // Set logo position (enhanced 9-position grid)
+        function setLogoPosition(position) {
+            overlaySettings.logoPosition = position;
+            // Reset custom drag position when using preset
+            overlaySettings.logoCustomX = null;
+            overlaySettings.logoCustomY = null;
+
+            // Update button states
+            document.querySelectorAll('.logo-pos-btn').forEach(btn => {
+                btn.style.background = 'transparent';
+                btn.style.color = '#272D3F';
+            });
+            event.target.style.background = '#31D7CA';
+            event.target.style.color = 'white';
+
+            updateLogoPosition();
+        }
+
+        // Update logo size
+        function updateLogoSize(size) {
+            overlaySettings.logoSize = parseInt(size);
+            const logoImg = document.getElementById('logoPreviewImg');
+            if (logoImg) {
+                logoImg.style.height = size + 'px';
+            }
+        }
+
+        // Video scrubbing functions
+        function scrubVideo(value) {
+            const video = document.getElementById('scrubberVideo');
+            if (video && video.duration) {
+                const time = (value / 100) * video.duration;
+                video.currentTime = time;
+                document.getElementById('scrubberTime').textContent = formatTime(time);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function captureCurrentFrame() {
+            const video = document.getElementById('scrubberVideo');
+            if (!video || !video.videoWidth) {
+                alert('No video available to capture frame from');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+
+            // Add as custom thumbnail option
+            const grid = document.getElementById('thumbnailGrid');
+            const customThumb = document.createElement('div');
+            customThumb.className = 'thumbnail-option selected';
+            customThumb.onclick = () => selectThumbnailImage(imageData, customThumb);
+            customThumb.innerHTML = `
+                <img src="${imageData}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover;">
+                <div class="label">Captured Frame</div>
+            `;
+
+            // Deselect others and add new
+            document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+            grid.appendChild(customThumb);
+
+            // Update preview
+            selectThumbnailImage(imageData, customThumb);
+        }
+
+        function selectThumbnailImage(imageData, element) {
+            document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedThumbnail = imageData;
+
+            const preview = document.getElementById('thumbnailPreview');
+            preview.innerHTML = `<img src="${imageData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+        }
+
+        function handleCustomThumbnail(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const grid = document.getElementById('thumbnailGrid');
+                    const customThumb = document.createElement('div');
+                    customThumb.className = 'thumbnail-option selected';
+                    customThumb.onclick = () => selectThumbnailImage(e.target.result, customThumb);
+                    customThumb.innerHTML = `
+                        <img src="${e.target.result}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover;">
+                        <div class="label">Custom Upload</div>
+                    `;
+
+                    document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+                    grid.appendChild(customThumb);
+                    selectThumbnailImage(e.target.result, customThumb);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Navigation
+        function goToStep1() {
+            hideAllSteps();
+            document.getElementById('step1').classList.remove('hidden');
+        }
+
+        function goToStep2() {
+            hideAllSteps();
+            document.getElementById('step2').classList.remove('hidden');
+        }
+
+        function goToStep3() {
+            hideAllSteps();
+            document.getElementById('step3').classList.remove('hidden');
+        }
+
+        function goToStep4() {
+            hideAllSteps();
+            document.getElementById('step4').classList.remove('hidden');
+            initializeVideoEditor();
+        }
+
+        function goToStep5() {
+            hideAllSteps();
+            document.getElementById('step5').classList.remove('hidden');
+            generateThumbnails();
+
+            // Update button text based on platform
+            const continueBtn = document.getElementById('continueToAdCopyBtn');
+            if (selectedPlatform === 'general') {
+                continueBtn.textContent = 'Review & Export';
+            } else {
+                continueBtn.textContent = 'Continue to Ad Copy';
+            }
+        }
+
+        function goToStep6() {
+            // Skip ad copy for General Video
+            if (selectedPlatform === 'general') {
+                goToStep7();
+                return;
+            }
+
+            hideAllSteps();
+            document.getElementById('step6').classList.remove('hidden');
+            generateAdCopy();
+        }
+
+        function goToStep7() {
+            hideAllSteps();
+            document.getElementById('step7').classList.remove('hidden');
+            renderFinalReview();
+        }
+
+        function hideAllSteps() {
+            for (let i = 1; i <= 7; i++) {
+                document.getElementById('step' + i).classList.add('hidden');
+            }
+        }
+
+        // BriteCo Brand Guidelines
+        const britecoGuidelines = {
+            brand: {
+                name: 'BriteCo',
+                industry: 'Jewelry Insurance',
+                tagline: 'Protect What Matters Most',
+                colors: {
+                    turquoise: '#31D7CA',
+                    navy: '#272D3F',
+                    orange: '#FC883A'
+                },
+                tone: 'warm, trustworthy, elegant, modern',
+                targetAudience: 'Engaged couples, newlyweds, jewelry collectors, affluent professionals aged 25-55'
+            },
+            visualStyle: {
+                lighting: 'warm, golden, soft natural light with subtle highlights on jewelry',
+                mood: 'aspirational, romantic, secure, premium',
+                colors: 'warm tones, soft focus backgrounds, occasional teal/turquoise accents',
+                jewelry: 'show jewelry as hero with beautiful reflections and sparkle',
+                people: 'diverse, happy couples in lifestyle moments, hands with rings'
+            }
+        };
+
+        // Platform-specific best practices
+        const platformBestPractices = {
+            meta: {
+                name: 'Meta Reels',
+                hookTime: '0-3 seconds',
+                bestPractices: [
+                    'Hook viewers in first 1-3 seconds with movement or sparkle',
+                    'Vertical 9:16 fills the full screen',
+                    'Use motion to stop the scroll - jewelry catching light works great',
+                    'Show emotional moments (proposal, gift-giving) over static products',
+                    'End with clear brand moment or CTA',
+                    'Trending audio styles perform well but keep it elegant'
+                ],
+                contentTips: 'Lifestyle-focused, show jewelry being worn in aspirational settings. Emphasis on protection/security messaging resonates with engagement ring audience.'
+            },
+            tiktok: {
+                name: 'TikTok',
+                hookTime: '0-2 seconds',
+                bestPractices: [
+                    'First 2 seconds are critical - start with intrigue or beauty',
+                    'Authenticity performs better than overly polished content',
+                    'Show real moments: unboxing, revealing, admiring jewelry',
+                    'Use trending transitions and effects tastefully',
+                    'Educational content works well (how to protect your ring)',
+                    'Keep text minimal - let visuals tell the story'
+                ],
+                contentTips: 'More casual and authentic feel. Show relatable moments like admiring a ring, worry about losing it, relief of being protected. Younger demographic appreciates transparency.'
+            },
+            pinterest: {
+                name: 'Pinterest',
+                hookTime: '0-2 seconds',
+                bestPractices: [
+                    'Aspirational, aesthetic content performs best',
+                    'Wedding and engagement content is hugely popular',
+                    'Slow, elegant motion - avoid quick cuts',
+                    'Show jewelry in beautiful settings (velvet boxes, flowers, hands)',
+                    'Soft, dreamy color grading works well',
+                    'Users are in planning/dreaming mindset - inspire them'
+                ],
+                contentTips: 'Pinterest users are planning weddings and big purchases. Show beautiful jewelry moments, focus on the emotional significance. Insurance angle: peace of mind for your precious investment.'
+            },
+            reddit: {
+                name: 'Reddit',
+                hookTime: '0-3 seconds',
+                bestPractices: [
+                    'Horizontal 16:9 format for desktop-heavy audience',
+                    'Avoid overly salesy content - Reddit users prefer authenticity',
+                    'Educational or informational approach works better',
+                    'Show value proposition clearly and honestly',
+                    'Quality over flashiness - Reddit appreciates substance',
+                    'Consider community context (engagement rings, jewelry subreddits)'
+                ],
+                contentTips: 'Reddit audience is skeptical of traditional ads. Focus on genuine value: easy claims, comprehensive coverage, real protection. Avoid hype, show real benefits.'
+            },
+            general: {
+                name: 'General Video',
+                hookTime: '0-3 seconds',
+                bestPractices: [
+                    'Versatile format that can be adapted',
+                    'Strong opening hook with jewelry sparkle or emotional moment',
+                    'Clear brand presence throughout',
+                    'Professional quality with warm, inviting feel',
+                    'Balance between product beauty and lifestyle context',
+                    'Include subtle motion to keep engagement'
+                ],
+                contentTips: 'Multi-purpose video that works across channels. Focus on universal appeal: beautiful jewelry, security, peace of mind, professional yet warm brand.'
+            }
+        };
+
+        // Generate video prompt - creates a concise Runway-optimized prompt (<1000 chars)
+        async function generateVideoPrompt() {
+            const campaign = document.getElementById('campaignText').value;
+            if (!campaign.trim()) {
+                alert('Please describe your campaign');
+                return;
+            }
+
+            const specs = platformSpecs[selectedPlatform];
+            const platform = platformBestPractices[selectedPlatform];
+
+            // Veo best practices: Subject + Action + Style
+            // Avoid negative words like "no" or "don't"
+            const cameraAction = {
+                smooth: 'The camera smoothly pans across the scene, following the jewelry with fluid cinematic movement.',
+                zoom: 'The camera slowly zooms in, revealing the intricate details and sparkle of the jewelry.',
+                dynamic: 'The camera moves dynamically around the scene, capturing the jewelry from multiple elegant angles.'
+            };
+
+            // Create a clear, action-focused prompt following Veo best practices
+            // Format: Subject + Action + Style + Lighting/Atmosphere
+            const prompt = `A beautiful engagement ring sparkling under warm golden light. ${campaign ? campaign + '. ' : ''}
+
+${cameraAction[selectedMotion]} The jewelry catches the light, creating brilliant reflections and sparkle.
+
+Style: Premium jewelry advertisement, cinematic quality, warm romantic atmosphere, soft bokeh background. The scene feels aspirational and emotionally meaningful, like a luxury brand commercial.
+
+Lighting: Warm golden hour lighting with soft natural highlights dancing across the jewelry surface. The background has a soft, dreamy bokeh effect.
+
+The video captures the precious nature of fine jewelry, showing why it deserves protection and care.`;
+
+            document.getElementById('videoPrompt').value = prompt;
+
+            // Show character count - Veo allows ~4000 chars (1024 tokens)
+            const charCount = prompt.length;
+            console.log(`Prompt length: ${charCount}/4000 characters (Veo limit)`);
+
+            goToStep3();
+        }
+
+        function regeneratePrompt() {
+            generateVideoPrompt();
+        }
+
+        // Generate video
+        async function generateVideo() {
+            const videoProvider = document.getElementById('videoProvider').value;
+
+            // Validate image-to-video mode has an image
+            if (videoMode === 'image' && !videoSourceImageData) {
+                alert('Please upload a source image for image-to-video generation');
+                return;
+            }
+
+            // Use mock if selected
+            if (videoProvider === 'mock') {
+                generateVideoMock();
+                return;
+            }
+
+            const modeLabel = videoMode === 'image' ? 'Image-to-Video' : 'Text-to-Video';
+            showLoading('Generating Video', `${modeLabel} mode. This may take 1-2 minutes...`);
+
+            const prompt = document.getElementById('videoPrompt').value;
+            const specs = platformSpecs[selectedPlatform];
+
+            // Map aspect ratio to Runway format
+            // veo3 (text-to-video) only supports: 1280:720, 720:1280, 1080:1920, 1920:1080
+            // gen4_turbo (image-to-video) supports more ratios
+            const ratioMap = {
+                '9:16': '720:1280',
+                '16:9': '1280:720',
+                '1:1': '720:1280'  // Fallback to portrait
+            };
+            const ratio = ratioMap[specs.aspect] || '720:1280';
+
+            try {
+                // Build request body
+                const requestBody = {
+                    prompt: prompt,
+                    duration: selectedDuration,
+                    ratio: ratio,
+                    provider: videoProvider  // 'veo' or 'runway'
+                };
+
+                // Add image for image-to-video mode
+                if (videoMode === 'image' && videoSourceImageData) {
+                    requestBody.image = videoSourceImageData;
+                }
+
+                // Start the video generation task
+                const response = await fetch('/api/generate-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to start video generation');
+                }
+
+                const taskId = data.task_id;
+                const taskProvider = data.provider || videoProvider;
+                console.log('Video task started:', taskId, 'Provider:', taskProvider);
+
+                // Poll for completion
+                let attempts = 0;
+                const maxAttempts = 60; // 5 minutes max
+
+                const pollInterval = setInterval(async () => {
+                    attempts++;
+
+                    try {
+                        const statusResponse = await fetch(`/api/video-status/${encodeURIComponent(taskId)}?provider=${taskProvider}`);
+                        const statusData = await statusResponse.json();
+
+                        if (statusData.status === 'SUCCEEDED') {
+                            clearInterval(pollInterval);
+                            updateProgress(100, 'Complete!');
+
+                            videoData = {
+                                url: statusData.video_url,
+                                frames: generateMockFrames(5), // We'll extract real frames later
+                                duration: selectedDuration,
+                                taskId: taskId
+                            };
+
+                            setTimeout(() => {
+                                hideLoading();
+                                goToStep4();
+                            }, 500);
+                        } else if (statusData.status === 'FAILED') {
+                            clearInterval(pollInterval);
+                            hideLoading();
+                            alert('Video generation failed: ' + (statusData.error || 'Unknown error'));
+                        } else {
+                            // Still processing
+                            const progress = statusData.progress || Math.min(attempts * 2, 95);
+                            updateProgress(progress, getProgressMessage(progress));
+                        }
+                    } catch (pollError) {
+                        console.error('Poll error:', pollError);
+                    }
+
+                    if (attempts >= maxAttempts) {
+                        clearInterval(pollInterval);
+                        hideLoading();
+                        alert('Video generation timed out. Please try again.');
+                    }
+                }, 5000); // Poll every 5 seconds
+
+            } catch (error) {
+                console.error('Video generation error:', error);
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Mock video generation (for testing without API)
+        function generateVideoMock() {
+            showLoading('Generating Video', 'Mock mode - simulating video generation...');
+
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 95) progress = 95;
+                updateProgress(progress, getProgressMessage(progress));
+            }, 2000);
+
+            setTimeout(() => {
+                clearInterval(progressInterval);
+                updateProgress(100, 'Complete!');
+
+                videoData = {
+                    url: null,
+                    frames: generateMockFrames(5),
+                    duration: selectedDuration
+                };
+
+                setTimeout(() => {
+                    hideLoading();
+                    goToStep4();
+                }, 500);
+            }, 5000);
+        }
+
+        function generateMockFrames(count) {
+            const frames = [];
+            for (let i = 0; i < count; i++) {
+                frames.push({
+                    time: (i / count) * selectedDuration,
+                    thumbnail: null
+                });
+            }
+            return frames;
+        }
+
+        function getProgressMessage(progress) {
+            if (progress < 20) return 'Initializing video generation...';
+            if (progress < 40) return 'Processing prompt with Runway...';
+            if (progress < 60) return 'Generating video frames...';
+            if (progress < 80) return 'Rendering motion and effects...';
+            return 'Finalizing video...';
+        }
+
+        // Video editor
+        function initializeVideoEditor() {
+            const container = document.getElementById('videoPreviewContainer');
+            const specs = platformSpecs[selectedPlatform];
+
+            if (specs.aspect === '16:9') {
+                container.classList.add('landscape');
+                container.classList.remove('square');
+            } else if (specs.aspect === '1:1') {
+                container.classList.add('square');
+                container.classList.remove('landscape');
+            } else {
+                container.classList.remove('landscape', 'square');
+            }
+
+            // Show actual video if we have a URL
+            if (videoData && videoData.url) {
+                const videoPlayer = document.getElementById('videoPlayer');
+                const placeholder = document.getElementById('videoPlaceholder');
+
+                videoPlayer.src = videoData.url;
+                videoPlayer.style.display = 'block';
+                placeholder.style.display = 'none';
+
+                // Wait for video to load metadata then capture frames
+                videoPlayer.onloadedmetadata = function() {
+                    captureVideoFrames(videoPlayer);
+                    videoPlayer.play();
+                };
+            }
+
+            // Initialize logo grid
+            initializeLogoGrid();
+
+            // Initialize drag handlers for text and logo overlays
+            initDragHandlers();
+
+            // Restore UI state from overlaySettings
+            restoreOverlayUIState();
+
+            renderTimeline();
+        }
+
+        // Restore UI state when returning to editor
+        function restoreOverlayUIState() {
+            // Restore text overlay
+            const textInput = document.getElementById('overlayText');
+            if (textInput && overlaySettings.text) {
+                textInput.value = overlaySettings.text;
+                updateTextOverlay();
+            }
+
+            // Restore font family select
+            const fontSelect = document.getElementById('fontFamilySelect');
+            if (fontSelect) {
+                fontSelect.value = overlaySettings.font;
+            }
+
+            // Restore font size
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            const fontSizeDisplay = document.getElementById('fontSizeDisplay');
+            if (fontSizeSlider) {
+                fontSizeSlider.value = overlaySettings.fontSize;
+                if (fontSizeDisplay) fontSizeDisplay.textContent = overlaySettings.fontSize;
+            }
+
+            // Restore text color
+            const textColorPicker = document.getElementById('textColorPicker');
+            if (textColorPicker) {
+                textColorPicker.value = overlaySettings.color;
+            }
+
+            // Restore background select
+            const textBgSelect = document.getElementById('textBgSelect');
+            if (textBgSelect) {
+                textBgSelect.value = overlaySettings.bgColor;
+            }
+
+            // Restore logo checkbox and controls
+            const showLogoCheckbox = document.getElementById('showLogo');
+            const logoControls = document.getElementById('logoControls');
+            if (showLogoCheckbox) {
+                showLogoCheckbox.checked = overlaySettings.showLogo;
+                if (logoControls) {
+                    logoControls.classList.toggle('hidden', !overlaySettings.showLogo);
+                }
+            }
+
+            // Restore logo preview
+            if (overlaySettings.showLogo) {
+                const logoPreview = document.getElementById('logoOverlayPreview');
+                const logoImg = document.getElementById('logoPreviewImg');
+                if (logoPreview && logoImg) {
+                    logoPreview.style.display = 'block';
+                    logoImg.src = overlaySettings.logoSrc;
+                    logoImg.style.height = overlaySettings.logoSize + 'px';
+                }
+                // Apply custom position if set
+                if (overlaySettings.logoCustomX !== null && overlaySettings.logoCustomY !== null) {
+                    const logoPreviewEl = document.getElementById('logoOverlayPreview');
+                    if (logoPreviewEl) {
+                        logoPreviewEl.style.left = overlaySettings.logoCustomX + '%';
+                        logoPreviewEl.style.top = overlaySettings.logoCustomY + '%';
+                        logoPreviewEl.style.right = 'auto';
+                        logoPreviewEl.style.bottom = 'auto';
+                        logoPreviewEl.style.transform = 'none';
+                    }
+                }
+            }
+
+            // Restore logo size slider
+            const logoSizeSlider = document.getElementById('logoSizeSlider');
+            if (logoSizeSlider) {
+                logoSizeSlider.value = overlaySettings.logoSize;
+            }
+
+            // Highlight selected logo in grid
+            setTimeout(() => {
+                const logoCards = document.querySelectorAll('.logo-card');
+                logoCards.forEach((card, idx) => {
+                    if (idx === overlaySettings.selectedLogoIndex) {
+                        card.classList.add('selected');
+                        card.style.borderColor = '#31D7CA';
+                    } else {
+                        card.classList.remove('selected');
+                        card.style.borderColor = '#E1E7EF';
+                    }
+                });
+            }, 100);
+        }
+
+        // Capture frames from the actual video
+        function captureVideoFrames(video) {
+            const duration = video.duration || selectedDuration;
+            const frameCount = 5;
+            const frameInterval = duration / frameCount;
+
+            // Initialize frames array if not exists
+            if (!videoData.frames || videoData.frames.length === 0) {
+                videoData.frames = [];
+                for (let i = 0; i < frameCount; i++) {
+                    videoData.frames.push({
+                        time: i * frameInterval,
+                        thumbnail: null
+                    });
+                }
+            }
+
+            // Capture thumbnails from video
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 180;
+            canvas.height = 320;
+
+            let framesCaptured = 0;
+
+            function captureFrame(frameIndex) {
+                if (frameIndex >= frameCount) {
+                    renderTimeline();
+                    video.currentTime = 0;
+                    return;
+                }
+
+                video.currentTime = videoData.frames[frameIndex].time;
+            }
+
+            video.onseeked = function() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                videoData.frames[framesCaptured].thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                framesCaptured++;
+                captureFrame(framesCaptured);
+            };
+
+            captureFrame(0);
+        }
+
+        function renderTimeline() {
+            const timeline = document.getElementById('timelineFrames');
+            timeline.innerHTML = '';
+
+            if (!videoData || !videoData.frames || videoData.frames.length === 0) {
+                // Show placeholder frames if no video data
+                for (let i = 0; i < 5; i++) {
+                    const frameEl = document.createElement('div');
+                    frameEl.className = 'timeline-frame' + (i === currentFrame ? ' selected' : '');
+                    frameEl.onclick = () => selectFrame(i);
+                    frameEl.innerHTML = `
+                        <div style="width: 100%; aspect-ratio: 9/16; background: linear-gradient(135deg, #272D3F ${i * 15}%, #31D7CA ${100 - i * 10}%); display: flex; align-items: center; justify-content: center; color: #7DA3AF; font-size: 0.7rem;">No video</div>
+                        <div class="time-label">${(i * 1.6).toFixed(1)}s</div>
+                    `;
+                    timeline.appendChild(frameEl);
+                }
+                return;
+            }
+
+            videoData.frames.forEach((frame, index) => {
+                const frameEl = document.createElement('div');
+                frameEl.className = 'timeline-frame' + (index === currentFrame ? ' selected' : '');
+                frameEl.onclick = () => selectFrame(index);
+
+                // Use captured thumbnail or gradient placeholder
+                const thumbnailStyle = frame.thumbnail
+                    ? `background-image: url(${frame.thumbnail}); background-size: cover; background-position: center;`
+                    : `background: linear-gradient(135deg, #272D3F ${index * 15}%, #31D7CA ${100 - index * 10}%);`;
+
+                frameEl.innerHTML = `
+                    <div style="width: 100%; aspect-ratio: 9/16; ${thumbnailStyle}"></div>
+                    <div class="time-label">${frame.time.toFixed(1)}s</div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); removeFrame(${index})">×</button>
+                `;
+
+                timeline.appendChild(frameEl);
+            });
+        }
+
+        function selectFrame(index) {
+            currentFrame = index;
+            renderTimeline();
+        }
+
+        function removeFrame(index) {
+            if (videoData.frames.length <= 2) {
+                alert('Video must have at least 2 frames');
+                return;
+            }
+            videoData.frames.splice(index, 1);
+            if (currentFrame >= videoData.frames.length) {
+                currentFrame = videoData.frames.length - 1;
+            }
+            renderTimeline();
+        }
+
+        function removeCurrentFrame() {
+            removeFrame(currentFrame);
+        }
+
+        function updateSpeed(value) {
+            document.getElementById('speedDisplay').textContent = value + 'x';
+        }
+
+        // Text overlay
+        function updateTextOverlay() {
+            const text = document.getElementById('overlayText').value;
+            overlaySettings.text = text;
+
+            const preview = document.getElementById('textOverlayPreview');
+            const display = document.getElementById('overlayTextDisplay');
+            const bgDiv = preview.querySelector('div');
+
+            if (text) {
+                preview.style.display = 'block';
+                display.textContent = text;
+                display.style.color = overlaySettings.color;
+                display.style.fontFamily = overlaySettings.font === 'Gilroy' ? '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : overlaySettings.font;
+                display.style.fontSize = overlaySettings.fontSize + 'px';
+
+                // Apply background
+                if (bgDiv) {
+                    bgDiv.style.background = overlaySettings.bgColor;
+                }
+
+                // Check for custom drag position first
+                if (overlaySettings.textCustomX !== null && overlaySettings.textCustomY !== null) {
+                    preview.style.left = overlaySettings.textCustomX + '%';
+                    preview.style.top = overlaySettings.textCustomY + '%';
+                    preview.style.right = 'auto';
+                    preview.style.bottom = 'auto';
+                    preview.style.transform = 'none';
+                } else {
+                    // Apply 9-position grid positioning
+                    const pos = overlaySettings.position;
+                    const [vertical, horizontal] = pos.split('-');
+
+                    // Vertical position
+                    if (vertical === 'top') {
+                        preview.style.top = '10%';
+                        preview.style.bottom = 'auto';
+                    } else if (vertical === 'middle') {
+                        preview.style.top = '50%';
+                        preview.style.bottom = 'auto';
+                    } else {
+                        preview.style.top = 'auto';
+                        preview.style.bottom = '10%';
+                    }
+
+                    // Horizontal position
+                    if (horizontal === 'left') {
+                        preview.style.left = '10%';
+                        preview.style.right = 'auto';
+                        preview.style.transform = vertical === 'middle' ? 'translateY(-50%)' : 'none';
+                    } else if (horizontal === 'right') {
+                        preview.style.left = 'auto';
+                        preview.style.right = '10%';
+                        preview.style.transform = vertical === 'middle' ? 'translateY(-50%)' : 'none';
+                    } else {
+                        preview.style.left = '50%';
+                        preview.style.right = 'auto';
+                        preview.style.transform = vertical === 'middle' ? 'translate(-50%, -50%)' : 'translateX(-50%)';
+                    }
+                }
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function setTextColor(color) {
+            overlaySettings.color = color;
+            document.getElementById('textColorPicker').value = color;
+            document.getElementById('overlayTextDisplay').style.color = color;
+        }
+
+        // Logo
+        function toggleLogo() {
+            const show = document.getElementById('showLogo').checked;
+            overlaySettings.showLogo = show;
+
+            document.getElementById('logoControls').classList.toggle('hidden', !show);
+            document.getElementById('logoOverlayPreview').style.display = show ? 'block' : 'none';
+
+            if (show) {
+                document.getElementById('logoPreviewImg').src = overlaySettings.logoSrc;
+                document.getElementById('logoPreviewImg').style.height = overlaySettings.logoSize + 'px';
+                updateLogoPosition();
+            }
+        }
+
+        function updateLogoPosition() {
+            const position = overlaySettings.logoPosition;
+            const logo = document.getElementById('logoOverlayPreview');
+
+            // Check for custom drag position first
+            if (overlaySettings.logoCustomX !== null && overlaySettings.logoCustomY !== null) {
+                logo.style.left = overlaySettings.logoCustomX + '%';
+                logo.style.top = overlaySettings.logoCustomY + '%';
+                logo.style.right = 'auto';
+                logo.style.bottom = 'auto';
+                logo.style.transform = 'none';
+                return;
+            }
+
+            const [vertical, horizontal] = position.split('-');
+
+            // Vertical position
+            if (vertical === 'top') {
+                logo.style.top = '20px';
+                logo.style.bottom = 'auto';
+            } else if (vertical === 'middle') {
+                logo.style.top = '50%';
+                logo.style.bottom = 'auto';
+                logo.style.transform = horizontal === 'center' ? 'translate(-50%, -50%)' : 'translateY(-50%)';
+            } else {
+                logo.style.top = 'auto';
+                logo.style.bottom = '20px';
+            }
+
+            // Horizontal position
+            if (horizontal === 'left') {
+                logo.style.left = '20px';
+                logo.style.right = 'auto';
+            } else if (horizontal === 'right') {
+                logo.style.left = 'auto';
+                logo.style.right = '20px';
+            } else {
+                logo.style.left = '50%';
+                logo.style.right = 'auto';
+                if (vertical !== 'middle') {
+                    logo.style.transform = 'translateX(-50%)';
+                }
+            }
+        }
+
+        // ==========================================
+        // DRAG AND DROP FOR OVERLAYS
+        // ==========================================
+        let isDragging = false;
+        let dragTarget = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let elementStartX = 0;
+        let elementStartY = 0;
+
+        function initDragHandlers() {
+            const textOverlay = document.getElementById('textOverlayPreview');
+            const logoOverlay = document.getElementById('logoOverlayPreview');
+            const container = document.getElementById('videoPreviewContainer');
+
+            console.log('[DRAG] Initializing drag handlers');
+            console.log('[DRAG] Text overlay:', textOverlay);
+            console.log('[DRAG] Logo overlay:', logoOverlay);
+            console.log('[DRAG] Container:', container);
+
+            // Text overlay drag
+            if (textOverlay) {
+                textOverlay.addEventListener('mousedown', (e) => startDrag(e, textOverlay, 'text'));
+                textOverlay.addEventListener('touchstart', (e) => startDrag(e, textOverlay, 'text'), { passive: false });
+            }
+
+            // Logo overlay drag
+            if (logoOverlay) {
+                logoOverlay.addEventListener('mousedown', (e) => startDrag(e, logoOverlay, 'logo'));
+                logoOverlay.addEventListener('touchstart', (e) => startDrag(e, logoOverlay, 'logo'), { passive: false });
+            }
+
+            // Global mouse/touch move and up handlers
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('touchmove', handleDrag, { passive: false });
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function startDrag(e, element, type) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[DRAG] Start drag:', type, element);
+            isDragging = true;
+            dragTarget = element;
+            element.classList.add('dragging');
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            dragStartX = clientX;
+            dragStartY = clientY;
+
+            // Get current element position
+            const rect = element.getBoundingClientRect();
+            elementStartX = rect.left;
+            elementStartY = rect.top;
+
+            // Store the type for later
+            dragTarget.dataset.dragType = type;
+        }
+
+        function handleDrag(e) {
+            if (!isDragging || !dragTarget) return;
+            e.preventDefault();
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const container = document.getElementById('videoPreviewContainer');
+            if (!container) return;
+            const containerRect = container.getBoundingClientRect();
+
+            // Calculate new position relative to container
+            const deltaX = clientX - dragStartX;
+            const deltaY = clientY - dragStartY;
+
+            const newX = elementStartX + deltaX - containerRect.left;
+            const newY = elementStartY + deltaY - containerRect.top;
+
+            // Convert to percentage for responsive positioning
+            const percentX = (newX / containerRect.width) * 100;
+            const percentY = (newY / containerRect.height) * 100;
+
+            // Clamp values to keep element within container (0-95% to account for element size)
+            const clampedX = Math.max(0, Math.min(95, percentX));
+            const clampedY = Math.max(0, Math.min(95, percentY));
+
+            // Apply position using left/top percentages
+            dragTarget.style.left = clampedX + '%';
+            dragTarget.style.top = clampedY + '%';
+            dragTarget.style.right = 'auto';
+            dragTarget.style.bottom = 'auto';
+            dragTarget.style.transform = 'none';
+        }
+
+        function stopDrag(e) {
+            if (!isDragging || !dragTarget) return;
+
+            dragTarget.classList.remove('dragging');
+
+            const container = document.getElementById('videoPreviewContainer');
+            if (!container) return;
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = dragTarget.getBoundingClientRect();
+
+            // Calculate final percentage position
+            const finalX = ((elementRect.left - containerRect.left) / containerRect.width) * 100;
+            const finalY = ((elementRect.top - containerRect.top) / containerRect.height) * 100;
+
+            // Store in overlaySettings based on type
+            const type = dragTarget.dataset.dragType;
+            if (type === 'text') {
+                overlaySettings.textCustomX = finalX;
+                overlaySettings.textCustomY = finalY;
+                overlaySettings.position = 'custom';
+                // Update position display
+                document.getElementById('textPosDisplay').textContent = 'Custom (Drag)';
+                // Deselect all position buttons
+                document.querySelectorAll('.pos-btn').forEach(btn => {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#272D3F';
+                });
+            } else if (type === 'logo') {
+                overlaySettings.logoCustomX = finalX;
+                overlaySettings.logoCustomY = finalY;
+                overlaySettings.logoPosition = 'custom';
+                // Update logo position display if exists
+                const logoPosDisplay = document.getElementById('logoPosDisplay');
+                if (logoPosDisplay) logoPosDisplay.textContent = 'Custom (Drag)';
+                // Deselect all logo position buttons
+                document.querySelectorAll('.logo-pos-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+
+            isDragging = false;
+            dragTarget = null;
+        }
+
+        // Reset to preset position (called when user clicks a position button)
+        function resetTextToPreset() {
+            overlaySettings.textCustomX = null;
+            overlaySettings.textCustomY = null;
+        }
+
+        function resetLogoToPreset() {
+            overlaySettings.logoCustomX = null;
+            overlaySettings.logoCustomY = null;
+        }
+
+        // Thumbnails
+        function generateThumbnails() {
+            const grid = document.getElementById('thumbnailGrid');
+            grid.innerHTML = '';
+
+            // Set up video scrubber
+            const scrubberVideo = document.getElementById('scrubberVideo');
+            const scrubberPlaceholder = document.getElementById('scrubberPlaceholder');
+
+            if (videoData && videoData.url) {
+                scrubberVideo.src = videoData.url;
+                scrubberVideo.style.display = 'block';
+                scrubberPlaceholder.style.display = 'none';
+
+                scrubberVideo.onloadedmetadata = function() {
+                    document.getElementById('scrubberDuration').textContent = formatTime(scrubberVideo.duration);
+                    // Capture thumbnails from video
+                    captureThumbnailsFromVideo(scrubberVideo, grid);
+                };
+            } else {
+                scrubberVideo.style.display = 'none';
+                scrubberPlaceholder.style.display = 'flex';
+                // Show placeholder thumbnails
+                renderPlaceholderThumbnails(grid);
+            }
+        }
+
+        function captureThumbnailsFromVideo(video, grid) {
+            const duration = video.duration;
+            const thumbnailCount = 4;
+            const interval = duration / thumbnailCount;
+            const thumbnails = [];
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 180;
+            canvas.height = 320;
+
+            let captured = 0;
+
+            function captureNextThumbnail() {
+                if (captured >= thumbnailCount) {
+                    // All thumbnails captured, render them
+                    video.currentTime = 0;
+                    renderCapturedThumbnails(grid, thumbnails);
+                    return;
+                }
+
+                video.currentTime = captured * interval + 0.1; // Small offset to avoid black frames
+            }
+
+            video.onseeked = function() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                thumbnails.push({
+                    dataUrl: canvas.toDataURL('image/jpeg', 0.8),
+                    time: captured * interval
+                });
+                captured++;
+                captureNextThumbnail();
+            };
+
+            captureNextThumbnail();
+        }
+
+        function renderCapturedThumbnails(grid, thumbnails) {
+            grid.innerHTML = '';
+
+            thumbnails.forEach((thumb, i) => {
+                const thumbEl = document.createElement('div');
+                thumbEl.className = 'thumbnail-option' + (i === 0 ? ' selected' : '');
+
+                thumbEl.innerHTML = `
+                    <div style="aspect-ratio: 9/16; background-image: url(${thumb.dataUrl}); background-size: cover; background-position: center; border-radius: 4px;"></div>
+                    <div class="label">Frame ${i + 1}</div>
+                `;
+
+                thumbEl.onclick = () => {
+                    document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+                    thumbEl.classList.add('selected');
+                    selectedThumbnail = i;
+                    const preview = document.getElementById('thumbnailPreview');
+                    preview.innerHTML = `<div style="width: 100%; height: 100%; background-image: url(${thumb.dataUrl}); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
+                };
+
+                grid.appendChild(thumbEl);
+            });
+
+            // Select first thumbnail by default
+            if (grid.firstChild) {
+                grid.firstChild.click();
+            }
+        }
+
+        function renderPlaceholderThumbnails(grid) {
+            for (let i = 0; i < 4; i++) {
+                const thumb = document.createElement('div');
+                thumb.className = 'thumbnail-option' + (i === 0 ? ' selected' : '');
+
+                const gradientStart = i * 20;
+                const gradientEnd = 100 - i * 15;
+
+                thumb.innerHTML = `
+                    <div style="aspect-ratio: 9/16; background: linear-gradient(135deg, #272D3F ${gradientStart}%, #31D7CA ${gradientEnd}%); border-radius: 4px; display: flex; align-items: center; justify-content: center;"><span style="color: #7DA3AF; font-size: 0.7rem;">No video</span></div>
+                    <div class="label">Frame ${i + 1}</div>
+                `;
+
+                thumb.onclick = () => {
+                    document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+                    thumb.classList.add('selected');
+                    selectedThumbnail = i;
+                    const preview = document.getElementById('thumbnailPreview');
+                    preview.innerHTML = `<div style="width: 100%; height: 100%; background: linear-gradient(135deg, #272D3F ${gradientStart}%, #31D7CA ${gradientEnd}%); border-radius: 8px; display: flex; align-items: center; justify-content: center;"><span style="color: #7DA3AF;">No video loaded</span></div>`;
+                };
+
+                grid.appendChild(thumb);
+            }
+
+            // Select first thumbnail by default
+            if (grid.firstChild) {
+                grid.firstChild.click();
+            }
+        }
+
+        function selectThumbnail(index, element) {
+            document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedThumbnail = index;
+
+            const preview = document.getElementById('thumbnailPreview');
+            preview.innerHTML = `<div style="width: 100%; height: 100%; background: linear-gradient(135deg, #272D3F ${index * 20}%, #31D7CA ${100 - index * 15}%); border-radius: 8px;"></div>`;
+        }
+
+        // Platform-specific ad specs (researched from official guidelines)
+        const platformAdSpecs = {
+            meta: {
+                name: 'Meta (Facebook/Instagram)',
+                headline: { max: 27, label: 'Primary Text' },
+                description: { max: 27, label: 'Description' },
+                body: { max: 125, label: 'Primary Text (visible)', note: 'First 125 chars visible before "See more"' },
+                cta: { options: ['Learn More', 'Shop Now', 'Sign Up', 'Get Quote', 'Contact Us'] },
+                tips: 'Front-load your value proposition. Use clear, action-oriented language. Emojis can help but use sparingly.'
+            },
+            tiktok: {
+                name: 'TikTok',
+                headline: { max: 100, label: 'Ad Name/Title' },
+                body: { max: 100, label: 'Ad Text', note: 'Keep it casual and authentic' },
+                cta: { options: ['Learn More', 'Shop Now', 'Sign Up', 'Download', 'Contact Us'] },
+                tips: 'Be authentic and casual. TikTok users respond to genuine, relatable content. Avoid overly polished ad speak.'
+            },
+            pinterest: {
+                name: 'Pinterest',
+                headline: { max: 100, label: 'Pin Title', note: 'First 40 chars most visible' },
+                body: { max: 500, label: 'Pin Description' },
+                cta: { options: ['Learn More', 'Shop', 'Save', 'Try It', 'Get Started'] },
+                tips: 'Focus on aspiration and inspiration. Pinterest users are in discovery/planning mode. Use descriptive, visual language.'
+            },
+            reddit: {
+                name: 'Reddit',
+                headline: { max: 300, label: 'Post Title' },
+                body: { max: 500, label: 'Post Text' },
+                cta: { options: ['Learn More', 'Check It Out', 'Get Started', 'See Details'] },
+                tips: 'Be transparent and community-focused. Redditors value authenticity and dislike hard sells. Focus on value, not hype.'
+            }
+        };
+
+        // Ad Copy
+        async function generateAdCopy() {
+            const container = document.getElementById('adCopyContainer');
+            const specs = platformAdSpecs[selectedPlatform] || platformAdSpecs.meta;
+
+            // Update subtitle and show platform specs
+            document.getElementById('adCopySubtitle').textContent = `AI-generated copy optimized for ${specs.name} ad specifications.`;
+
+            const platformSpecsInfo = document.getElementById('platformSpecsInfo');
+            platformSpecsInfo.classList.remove('hidden');
+            document.getElementById('platformSpecsTitle').textContent = `${specs.name} Ad Specifications`;
+            document.getElementById('platformSpecsDesc').innerHTML = `
+                <strong>${specs.headline.label}:</strong> ${specs.headline.max} chars max${specs.headline.note ? ` (${specs.headline.note})` : ''}<br>
+                <strong>${specs.body.label}:</strong> ${specs.body.max} chars${specs.body.note ? ` (${specs.body.note})` : ''}<br>
+                <strong>Tip:</strong> ${specs.tips}
+            `;
+
+            // Show loading state
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 1rem;"></div>
+                    <p style="color: #7DA3AF;">Generating 3 ad copy options...</p>
+                </div>
+            `;
+
+            // Generate 3 ad copy options
+            adCopyOptions = [
+                {
+                    headline: 'Protect Your Forever Ring',
+                    body: `Your engagement ring tells your story. BriteCo keeps it protected with comprehensive coverage, easy claims, and peace of mind. Because some things are irreplaceable.`,
+                    cta: specs.cta.options[0]
+                },
+                {
+                    headline: 'Jewelry Insurance Made Simple',
+                    body: `Don't let worry follow your sparkle. BriteCo offers instant coverage for your precious jewelry with hassle-free claims and affordable rates. Get protected in minutes.`,
+                    cta: specs.cta.options[1] || specs.cta.options[0]
+                },
+                {
+                    headline: 'Your Ring Deserves the Best',
+                    body: `From the moment you said yes, your ring became priceless. BriteCo understands. That's why we offer specialized jewelry insurance that covers what matters most.`,
+                    cta: specs.cta.options[2] || specs.cta.options[0]
+                }
+            ];
+
+            // Render 3 options
+            container.innerHTML = `
+                <div style="display: grid; gap: 1.5rem;">
+                    ${adCopyOptions.map((option, index) => `
+                        <div class="copy-section" style="cursor: pointer; border: 3px solid ${index === selectedAdCopyIndex ? '#31D7CA' : 'transparent'}; transition: all 0.2s;" onclick="selectAdCopyOption(${index})">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <span class="copy-label" style="margin-bottom: 0;">Option ${index + 1}</span>
+                                <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${index === selectedAdCopyIndex ? '#31D7CA' : '#E1E7EF'}; background: ${index === selectedAdCopyIndex ? '#31D7CA' : 'white'}; display: flex; align-items: center; justify-content: center;">
+                                    ${index === selectedAdCopyIndex ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong style="color: #272D3F;">${option.headline}</strong>
+                                <span style="color: #7DA3AF; font-size: 0.8rem; margin-left: 0.5rem;">(${option.headline.length}/${specs.headline.max} chars)</span>
+                            </div>
+                            <p style="color: #7DA3AF; font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.5rem;">${option.body}</p>
+                            <span style="color: #7DA3AF; font-size: 0.8rem;">(${option.body.length}/${specs.body.max} chars)</span>
+                            <div style="margin-top: 0.75rem;">
+                                <span style="background: #FC883A; color: white; padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">${option.cta}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Edit Selected Copy</h3>
+                    <div class="copy-section">
+                        <label class="copy-label">${specs.headline.label}</label>
+                        <input type="text" id="copyHeadline" value="${adCopyOptions[selectedAdCopyIndex].headline}" style="font-weight: 600;" oninput="updateSelectedCopy()">
+                        <p style="color: #7DA3AF; font-size: 0.8rem; margin-top: 0.25rem;">Max ${specs.headline.max} characters</p>
+                    </div>
+
+                    <div class="copy-section">
+                        <label class="copy-label">${specs.body.label}</label>
+                        <textarea id="copyBody" rows="3" oninput="updateSelectedCopy()">${adCopyOptions[selectedAdCopyIndex].body}</textarea>
+                        <p style="color: #7DA3AF; font-size: 0.8rem; margin-top: 0.25rem;">Max ${specs.body.max} characters</p>
+                    </div>
+
+                    <div class="copy-section">
+                        <label class="copy-label">Call to Action</label>
+                        <select id="copyCTA" onchange="updateSelectedCopy()">
+                            ${specs.cta.options.map(cta => `<option value="${cta}" ${cta === adCopyOptions[selectedAdCopyIndex].cta ? 'selected' : ''}>${cta}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectAdCopyOption(index) {
+            selectedAdCopyIndex = index;
+
+            // Update edit fields
+            const specs = platformAdSpecs[selectedPlatform] || platformAdSpecs.meta;
+            document.getElementById('copyHeadline').value = adCopyOptions[index].headline;
+            document.getElementById('copyBody').value = adCopyOptions[index].body;
+            document.getElementById('copyCTA').value = adCopyOptions[index].cta;
+
+            // Re-render to update selection state
+            generateAdCopy();
+        }
+
+        function updateSelectedCopy() {
+            adCopyOptions[selectedAdCopyIndex] = {
+                headline: document.getElementById('copyHeadline').value,
+                body: document.getElementById('copyBody').value,
+                cta: document.getElementById('copyCTA').value
+            };
+        }
+
+        function regenerateAdCopy() {
+            selectedAdCopyIndex = 0;
+            generateAdCopy();
+        }
+
+        // Final review
+        function renderFinalReview() {
+            // Get ad copy from selected option (for platform videos)
+            if (selectedPlatform !== 'general' && adCopyOptions.length > 0) {
+                adCopy = adCopyOptions[selectedAdCopyIndex];
+            }
+
+            // Update from form fields if they exist
+            if (document.getElementById('copyHeadline')) {
+                adCopy.headline = document.getElementById('copyHeadline').value || adCopy.headline;
+            }
+            if (document.getElementById('copyBody')) {
+                adCopy.body = document.getElementById('copyBody').value || adCopy.body;
+            }
+            if (document.getElementById('copyCTA')) {
+                adCopy.cta = document.getElementById('copyCTA').value || adCopy.cta;
+            }
+
+            // Show final video if available
+            if (videoData && videoData.url) {
+                const finalVideo = document.getElementById('finalVideoPlayer');
+                finalVideo.src = videoData.url;
+            }
+
+            // Render text overlay on final preview
+            const finalTextOverlay = document.getElementById('finalTextOverlay');
+            if (overlaySettings.text) {
+                finalTextOverlay.style.display = 'block';
+                finalTextOverlay.style.left = overlaySettings.textCustomX !== null ? overlaySettings.textCustomX + '%' : '50%';
+                finalTextOverlay.style.top = overlaySettings.textCustomY !== null ? overlaySettings.textCustomY + '%' : 'auto';
+                finalTextOverlay.style.bottom = overlaySettings.textCustomY === null ? '10%' : 'auto';
+                finalTextOverlay.style.transform = overlaySettings.textCustomX === null ? 'translateX(-50%)' : 'none';
+                finalTextOverlay.innerHTML = `
+                    <div style="background: ${overlaySettings.bgColor}; padding: 10px 20px; border-radius: 8px;">
+                        <p style="color: ${overlaySettings.color}; font-family: ${overlaySettings.font === 'Gilroy' ? '-apple-system, sans-serif' : overlaySettings.font}; font-size: ${overlaySettings.fontSize}px; font-weight: 700; margin: 0; white-space: nowrap;">${overlaySettings.text}</p>
+                    </div>
+                `;
+            } else {
+                finalTextOverlay.style.display = 'none';
+            }
+
+            // Render logo overlay on final preview
+            const finalLogoOverlay = document.getElementById('finalLogoOverlay');
+            if (overlaySettings.showLogo && overlaySettings.logoSrc) {
+                finalLogoOverlay.style.display = 'block';
+                finalLogoOverlay.style.left = overlaySettings.logoCustomX !== null ? overlaySettings.logoCustomX + '%' : 'auto';
+                finalLogoOverlay.style.right = overlaySettings.logoCustomX === null ? '20px' : 'auto';
+                finalLogoOverlay.style.top = overlaySettings.logoCustomY !== null ? overlaySettings.logoCustomY + '%' : 'auto';
+                finalLogoOverlay.style.bottom = overlaySettings.logoCustomY === null ? '20px' : 'auto';
+                finalLogoOverlay.style.transform = 'none';
+                finalLogoOverlay.innerHTML = `<img src="${overlaySettings.logoSrc}" alt="Logo" style="height: ${overlaySettings.logoSize}px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">`;
+            } else {
+                finalLogoOverlay.style.display = 'none';
+            }
+
+            const copyContainer = document.getElementById('finalAdCopy');
+
+            // Different display for General Video vs Platform videos
+            if (selectedPlatform === 'general') {
+                copyContainer.innerHTML = `
+                    <div style="text-align: center; padding: 1rem;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#31D7CA" stroke-width="2" style="margin-bottom: 1rem;">
+                            <rect x="3" y="5" width="18" height="14" rx="2"/>
+                            <polygon points="10,9 16,12 10,15"/>
+                        </svg>
+                        <p style="color: #272D3F; font-weight: 600; margin-bottom: 0.5rem;">General Video</p>
+                        <p style="color: #7DA3AF; font-size: 0.9rem;">No ad copy needed for this video type.</p>
+                        <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 1rem;">You can add text overlays directly to the video in the Edit step.</p>
+                    </div>
+                `;
+            } else {
+                const specs = platformAdSpecs[selectedPlatform] || platformAdSpecs.meta;
+                copyContainer.innerHTML = `
+                    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #E1E7EF;">
+                        <span style="background: #31D7CA; color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">${specs.name}</span>
+                    </div>
+                    <div class="copy-item">
+                        <p class="copy-item-label">${specs.headline.label}</p>
+                        <p class="copy-item-value" style="font-weight: 600;">${adCopy.headline}</p>
+                    </div>
+                    <div class="copy-item">
+                        <p class="copy-item-label">${specs.body.label}</p>
+                        <p class="copy-item-value">${adCopy.body}</p>
+                    </div>
+                    <div class="copy-item">
+                        <p class="copy-item-label">Call to Action</p>
+                        <p class="copy-item-value highlight">${adCopy.cta}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Downloads
+        function downloadVideo() {
+            if (videoData && videoData.url) {
+                // Open video URL in new tab (Runway URLs are downloadable)
+                window.open(videoData.url, '_blank');
+            } else {
+                alert('No video available. Generate a video first.');
+            }
+        }
+
+        function downloadThumbnail() {
+            // For now, alert - could capture frame from video
+            alert('Thumbnail download - coming soon. You can screenshot the video preview for now.');
+        }
+
+        function copyAllText() {
+            if (selectedPlatform === 'general') {
+                alert('No ad copy to copy for General Video');
+                return;
+            }
+
+            const specs = platformAdSpecs[selectedPlatform] || platformAdSpecs.meta;
+            const text = `${specs.headline.label}: ${adCopy.headline}\n\n${specs.body.label}: ${adCopy.body}\n\nCTA: ${adCopy.cta}`;
+            navigator.clipboard.writeText(text);
+            alert('Copied to clipboard!');
+        }
+
+        // Start over
+        function startOver() {
+            if (confirm('Start a new video? All current work will be lost.')) {
+                selectedPlatform = null;
+                selectedDuration = 6;
+                selectedMotion = 'smooth';
+                videoData = null;
+                currentFrame = 0;
+                overlaySettings = {
+                    text: '',
+                    position: 'bottom-center',
+                    color: '#FFFFFF',
+                    bgColor: 'rgba(0,0,0,0.7)',
+                    font: 'Gilroy',
+                    showLogo: false,
+                    logoPosition: 'bottom-right',
+                    logoSrc: '/Logo-BriteCo-Solid-Color-01.png',
+                    logoSize: 50
+                };
+                selectedThumbnail = null;
+                videoMode = 'text';
+                videoSourceImageData = null;
+                adCopyOptions = [];
+                selectedAdCopyIndex = 0;
+                adCopy = { headline: '', body: '', cta: '' };
+
+                document.querySelectorAll('.platform-card').forEach(card => card.classList.remove('selected'));
+                document.getElementById('continueBtn').disabled = true;
+                document.getElementById('campaignText').value = '';
+
+                // Reset image-to-video section
+                if (document.getElementById('videoSourceImagePreview')) {
+                    document.getElementById('videoSourceImagePreview').style.display = 'none';
+                    document.getElementById('videoSourceImagePlaceholder').style.display = 'block';
+                }
+
+                goToStep1();
+            }
+        }
+
+        // Loading
+        function showLoading(title, message) {
+            document.getElementById('loadingTitle').textContent = title;
+            document.getElementById('loadingMessage').textContent = message;
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressText').textContent = 'Starting...';
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function updateProgress(percent, message) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = message;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
