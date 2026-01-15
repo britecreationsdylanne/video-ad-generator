@@ -431,32 +431,38 @@
         .thumbnail-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
+            gap: 1.5rem;
             margin-top: 1rem;
         }
 
         .thumbnail-option {
             border: 3px solid #E1E7EF;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.2s ease;
+            background: #F4F7FC;
         }
 
         .thumbnail-option:hover {
             border-color: #31D7CA;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(49, 215, 202, 0.2);
         }
 
         .thumbnail-option.selected {
             border-color: #31D7CA;
+            border-width: 4px;
+            box-shadow: 0 4px 16px rgba(49, 215, 202, 0.3);
         }
 
         .thumbnail-option .label {
-            padding: 0.5rem;
+            padding: 0.75rem;
             text-align: center;
-            font-size: 0.85rem;
-            color: #7DA3AF;
+            font-size: 0.9rem;
+            color: #272D3F;
             background: #F4F7FC;
+            font-weight: 500;
         }
 
         /* Controls panel */
@@ -805,9 +811,10 @@
                     Continue to Inspiration
                 </button>
             </div>
+        </div>
 
-            <!-- Past Projects Section (Step 1 only) -->
-            <div style="background: #466F88; padding: 2rem 2.5rem;">
+        <!-- Past Projects Panel (Separate Card) - Only visible on Step 1 -->
+        <div id="pastProjectsPanel" class="card" style="margin-top: 2rem; background: #466F88; padding: 2.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2 style="color: white; font-size: 1.5rem; margin: 0;">Past Projects</h2>
                     <button class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: white;">
@@ -905,7 +912,6 @@
                 <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; text-align: center; margin-top: 1.5rem; font-style: italic;">
                     Past projects will be saved here automatically. Coming soon!
                 </p>
-            </div>
         </div>
 
         <!-- Step 2: Inspiration -->
@@ -1063,10 +1069,10 @@
         <!-- Step 4: Video Preview & Edit -->
         <div id="step4" class="card hidden">
             <h1>Edit Your Video</h1>
-            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Add text overlays, logo, and adjust timing.</p>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Add text overlays and logo to your video. Scrub to different times and add text boxes where you want them to appear.</p>
 
             <div class="two-column">
-                <!-- Video Preview -->
+                <!-- Video Preview with Overlays -->
                 <div>
                     <div class="video-preview-container" id="videoPreviewContainer">
                         <div class="video-placeholder" id="videoPlaceholder">
@@ -1076,13 +1082,12 @@
                             <p>Video preview will appear here</p>
                         </div>
                         <video id="videoPlayer" style="width: 100%; height: 100%; object-fit: cover; display: none;" loop muted></video>
-                        <!-- Text overlay - DRAGGABLE -->
-                        <div id="textOverlayPreview" class="draggable-overlay" style="position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); display: none; cursor: move;">
-                            <div id="textOverlayBg" style="background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 8px;">
-                                <p id="overlayTextDisplay" style="color: white; font-weight: 700; font-size: 24px; margin: 0; white-space: nowrap;"></p>
-                            </div>
-                            <div class="drag-handle" style="position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: #31D7CA; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+
+                        <!-- Container for multiple text boxes -->
+                        <div id="textBoxesContainer" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;">
+                            <!-- Text boxes will be rendered here dynamically -->
                         </div>
+
                         <!-- Logo overlay - DRAGGABLE -->
                         <div id="logoOverlayPreview" class="draggable-overlay" style="position: absolute; bottom: 20px; right: 20px; display: none; cursor: move;">
                             <img id="logoPreviewImg" src="" alt="Logo" style="height: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
@@ -1090,106 +1095,122 @@
                         </div>
                     </div>
 
-                    <!-- Timeline -->
-                    <div class="timeline-container">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h4 style="color: #272D3F; margin: 0;">Timeline</h4>
+                    <!-- Video Scrubber -->
+                    <div style="background: #F4F7FC; border-radius: 12px; padding: 1rem; margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <button id="playPauseBtn" onclick="togglePlayPause()" style="background: #31D7CA; border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <span id="playPauseIcon">▶</span>
+                                </button>
+                                <span id="currentTimeDisplay" style="font-size: 0.9rem; color: #272D3F; font-weight: 500;">0:00 / 0:00</span>
+                            </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span style="font-size: 0.85rem; color: #7DA3AF;">Speed:</span>
-                                <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1" style="width: 100px;" oninput="updateSpeed(this.value)">
-                                <span id="speedDisplay" style="font-size: 0.85rem; color: #272D3F; min-width: 40px;">1.0x</span>
+                                <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1" style="width: 80px;" oninput="updateSpeed(this.value)">
+                                <span id="speedDisplay" style="font-size: 0.85rem; color: #272D3F; min-width: 35px;">1.0x</span>
                             </div>
                         </div>
-                        <div class="timeline-frames" id="timelineFrames">
-                            <!-- Frames will be populated here -->
+                        <input type="range" id="videoTimeline" min="0" max="100" value="0" style="width: 100%;" oninput="scrubVideoTimeline(this.value)">
+
+                        <!-- Timeline markers for text boxes -->
+                        <div id="timelineMarkers" style="position: relative; height: 20px; margin-top: 0.5rem;">
+                            <!-- Markers will be rendered here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Controls -->
+                <!-- Controls Panel -->
                 <div class="controls-panel">
-                    <div style="background: #272D3F; color: white; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
-                        <span style="font-size: 0.8rem; opacity: 0.7;">Editing</span>
-                        <span id="currentFrameLabel" style="font-weight: 700; margin-left: 0.5rem;">Frame 1</span>
+                    <!-- Text Boxes Section -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">Text Boxes</h4>
+                            <button onclick="addVideoTextBox()" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                                + Add Text Box
+                            </button>
+                        </div>
+
+                        <!-- List of text boxes -->
+                        <div id="textBoxList" style="max-height: 200px; overflow-y: auto;">
+                            <p style="color: #7DA3AF; font-size: 0.9rem; text-align: center; padding: 1rem;">No text boxes yet. Click "Add Text Box" to create one at the current time.</p>
+                        </div>
                     </div>
 
-                    <h4>Text Overlay</h4>
+                    <!-- Selected Text Box Editor -->
+                    <div id="textBoxEditor" class="hidden" style="background: #F4F7FC; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0; font-size: 1rem;">Edit Text Box</h4>
+                            <button onclick="deleteSelectedTextBox()" style="background: #ff6b6b; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Delete</button>
+                        </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Text:</label>
-                        <input type="text" id="overlayText" placeholder="Enter text..." oninput="updateTextOverlay()">
-                    </div>
+                        <div class="control-group" style="margin-bottom: 0.75rem;">
+                            <label class="control-label" style="font-size: 0.85rem;">Text</label>
+                            <textarea id="videoTextInput" placeholder="Enter text..." oninput="updateSelectedTextBox()" style="width: 100%; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.9rem; resize: none; height: 60px;"></textarea>
+                        </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Font Family</label>
-                        <select id="fontFamilySelect" onchange="setTextFontFromSelect(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #E1E7EF; border-radius: 8px; font-size: 0.9rem; background: white;">
-                            <option value="Gilroy" selected>Gilroy (Brand Font)</option>
-                            <option value="Georgia">Georgia (Serif)</option>
-                            <option value="Arial">Arial (Sans-serif)</option>
-                            <option value="Times New Roman">Times New Roman</option>
-                            <option value="monospace">Monospace</option>
-                        </select>
-                    </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="control-label" style="font-size: 0.85rem;">Start Time</label>
+                                <input type="number" id="textBoxStart" min="0" step="0.1" oninput="updateSelectedTextBox()" style="width: 100%; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px;">
+                            </div>
+                            <div>
+                                <label class="control-label" style="font-size: 0.85rem;">End Time</label>
+                                <input type="number" id="textBoxEnd" min="0" step="0.1" oninput="updateSelectedTextBox()" style="width: 100%; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px;">
+                            </div>
+                        </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Font Size (<span id="fontSizeDisplay">24</span>px)</label>
-                        <input type="range" id="fontSizeSlider" min="12" max="48" value="24" oninput="updateFontSize(this.value)" style="width: 100%;">
-                    </div>
+                        <div class="control-group" style="margin-bottom: 0.75rem;">
+                            <label class="control-label" style="font-size: 0.85rem;">Font</label>
+                            <select id="videoFontSelect" onchange="updateSelectedTextBox()" style="width: 100%; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.9rem;">
+                                <option value="Gilroy">Gilroy</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                            </select>
+                        </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Text Color</label>
-                        <input type="color" id="textColorPicker" value="#FFFFFF" onchange="setTextColor(this.value)" style="width: 100%; height: 40px; border: 1px solid #E1E7EF; border-radius: 8px; cursor: pointer;">
-                    </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="control-label" style="font-size: 0.85rem;">Text Color</label>
+                                <input type="color" id="videoTextColor" value="#FFFFFF" onchange="updateSelectedTextBox()" style="width: 100%; height: 36px; border: 1px solid #E1E7EF; border-radius: 6px; cursor: pointer;">
+                            </div>
+                            <div>
+                                <label class="control-label" style="font-size: 0.85rem;">Background</label>
+                                <select id="videoTextBg" onchange="updateSelectedTextBox()" style="width: 100%; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.85rem;">
+                                    <option value="rgba(0,0,0,0.7)">Dark</option>
+                                    <option value="rgba(0,0,0,0.5)">Dark 50%</option>
+                                    <option value="rgba(255,255,255,0.9)">Light</option>
+                                    <option value="transparent">None</option>
+                                </select>
+                            </div>
+                        </div>
 
-                    <div class="control-group">
-                        <label class="control-label">Background</label>
-                        <select id="textBgSelect" onchange="setTextBgFromSelect(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #E1E7EF; border-radius: 8px; font-size: 0.9rem; background: white;">
-                            <option value="rgba(0,0,0,0.7)" selected>Dark (70% opacity)</option>
-                            <option value="rgba(0,0,0,0.5)">Dark (50% opacity)</option>
-                            <option value="rgba(255,255,255,0.9)">Light (90% opacity)</option>
-                            <option value="rgba(255,255,255,0.7)">Light (70% opacity)</option>
-                            <option value="transparent">None (Transparent)</option>
-                        </select>
+                        <p style="font-size: 0.8rem; color: #7DA3AF; margin: 0;">Drag the text box on the video to position. Drag corners to resize.</p>
                     </div>
 
                     <hr class="divider">
 
-                    <h4>Logo Settings</h4>
-
+                    <!-- Logo Section -->
+                    <h4>Logo</h4>
                     <div class="control-group">
                         <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
                             <input type="checkbox" id="showLogo" onchange="toggleLogo()" style="margin-right: 0.5rem; width: auto;">
-                            Add Logo
+                            Add Logo (appears throughout video)
                         </label>
                     </div>
 
                     <div id="logoControls" class="hidden">
                         <div class="control-group">
-                            <label class="control-label">Select Logo/Emblem</label>
+                            <label class="control-label">Select Logo</label>
                             <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
                                 <!-- Logos will be populated by JS -->
                             </div>
                         </div>
-
                         <div class="control-group">
                             <label class="control-label">Logo Size</label>
                             <input type="range" id="logoSizeSlider" min="30" max="120" value="50" oninput="updateLogoSize(this.value)" style="width: 100%;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #7DA3AF;">
-                                <span>Smaller</span>
-                                <span>Larger</span>
-                            </div>
                         </div>
                     </div>
-
-                    <hr class="divider">
-
-                    <button class="btn-secondary" style="width: 100%; margin-top: 0; padding: 0.75rem; background: #31D7CA;" onclick="copyOverlayToAllFrames()">
-                        Apply to All Frames
-                    </button>
-
-                    <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem;" onclick="removeCurrentFrame()">
-                        Remove Selected Frame
-                    </button>
                 </div>
             </div>
 
@@ -1199,37 +1220,49 @@
             </div>
         </div>
 
-        <!-- Step 5: Thumbnail Selection (Simplified) -->
+        <!-- Step 5: Thumbnail Selection -->
         <div id="step5" class="card hidden">
             <h1>Select Thumbnail</h1>
-            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Click on a frame to select it as your video thumbnail.</p>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Scrub through the video to find the perfect frame for your thumbnail.</p>
 
-            <div class="two-column-equal">
-                <div>
-                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Select Frame</h3>
-
-                    <!-- Timeline frames for selection -->
-                    <div class="thumbnail-grid" id="thumbnailGrid" style="grid-template-columns: repeat(4, 1fr);">
-                        <!-- Thumbnails will be populated here -->
+            <!-- Video Scrubber and Preview - Two Column Layout -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+                <!-- Video Scrubber -->
+                <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="color: #272D3F; margin: 0 0 1rem 0; font-size: 1.1rem;">Scrub Video</h4>
+                    <div id="scrubberVideoContainer" style="position: relative; margin-bottom: 1rem;">
+                        <video id="scrubberVideo" style="width: 100%; border-radius: 8px; background: #272D3F;" muted></video>
+                        <div id="scrubberPlaceholder" style="aspect-ratio: 16/9; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">Video preview</p>
+                        </div>
                     </div>
-
-                    <!-- Hidden elements needed for functionality -->
-                    <video id="scrubberVideo" style="display: none;" muted></video>
-                    <div id="scrubberPlaceholder" style="display: none;"></div>
-                    <input type="file" id="customThumbnail" accept="image/*" style="display: none;" onchange="handleCustomThumbnail(this)">
+                    <div class="video-scrubber">
+                        <input type="range" id="videoScrubber" min="0" max="100" value="0" oninput="scrubVideo(this.value)" style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                            <span id="scrubberTime" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
+                            <span id="scrubberDuration" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" onclick="captureCurrentFrame()">
+                        Capture This Frame
+                    </button>
                 </div>
 
-                <div>
-                    <h3 style="color: #272D3F; margin-bottom: 1rem;">Preview</h3>
-                    <div style="background: #F4F7FC; border-radius: 12px; padding: 1rem;">
-                        <div id="thumbnailPreview" style="aspect-ratio: 9/16; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center; max-width: 300px; overflow: hidden;">
-                            <p style="color: rgba(255,255,255,0.5);">Select a thumbnail</p>
-                        </div>
+                <!-- Selected Thumbnail Preview -->
+                <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="color: #272D3F; margin: 0 0 1rem 0; font-size: 1.1rem;">Selected Thumbnail</h4>
+                    <div id="thumbnailPreview" style="aspect-ratio: 9/16; background: #272D3F; border-radius: 8px; display: flex; align-items: center; justify-content: center; max-width: 280px; margin: 0 auto; overflow: hidden;">
+                        <p style="color: rgba(255,255,255,0.5); text-align: center; padding: 1rem;">Scrub the video and click "Capture This Frame"</p>
                     </div>
                 </div>
             </div>
 
-            <div class="button-group">
+            <input type="file" id="customThumbnail" accept="image/*" style="display: none;" onchange="handleCustomThumbnail(this)">
+
+            <!-- Hidden thumbnail grid for compatibility -->
+            <div id="thumbnailGrid" style="display: none;"></div>
+
+            <div class="button-group" style="margin-top: 2rem;">
                 <button class="btn-secondary" onclick="goToStep4()">Back</button>
                 <button class="btn-primary" id="continueToAdCopyBtn" onclick="goToStep6()">Continue to Ad Copy</button>
             </div>
@@ -1367,6 +1400,11 @@
         let videoSourceImageData = null;  // Base64 image for image-to-video
         let selectedAIProvider = 'claude';  // 'claude' or 'openai'
 
+        // New text box system - timestamp-based overlays
+        let videoTextBoxes = []; // Array of {id, text, startTime, endTime, x, y, fontSize, fontFamily, textColor, bgColor}
+        let selectedTextBoxId = null;
+        let nextTextBoxId = 1;
+
         // Available logos from project folder (matching ad generator)
         const availableLogos = [
             { src: '/Logo-BriteCo-Solid-Color-01.png', name: 'BriteCo Logo 1' },
@@ -1403,6 +1441,7 @@
             document.querySelectorAll('.duration-option').forEach(opt => opt.classList.remove('selected'));
             element.classList.add('selected');
             selectedDuration = duration;
+            console.log('[Duration] Selected:', selectedDuration, 'seconds');
         }
 
         // Motion selection
@@ -1589,19 +1628,24 @@
             ctx.drawImage(video, 0, 0);
 
             const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            const currentTime = video.currentTime;
 
             // Add as custom thumbnail option
             const grid = document.getElementById('thumbnailGrid');
             const customThumb = document.createElement('div');
             customThumb.className = 'thumbnail-option selected';
+            customThumb.style.cssText = 'cursor: pointer; border: 3px solid #31D7CA; border-radius: 8px; padding: 4px; transition: all 0.2s;';
             customThumb.onclick = () => selectThumbnailImage(imageData, customThumb);
             customThumb.innerHTML = `
-                <img src="${imageData}" style="width: 100%; aspect-ratio: 9/16; object-fit: cover;">
-                <div class="label">Captured Frame</div>
+                <div style="aspect-ratio: 9/16; background-image: url(${imageData}); background-size: cover; background-position: center; border-radius: 4px;"></div>
+                <div class="label" style="text-align: center; font-size: 0.8rem; color: #31D7CA; margin-top: 0.25rem; font-weight: 600;">${formatTime(currentTime)} ✓</div>
             `;
 
             // Deselect others and add new
-            document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelectorAll('.thumbnail-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.style.borderColor = 'transparent';
+            });
             grid.appendChild(customThumb);
 
             // Update preview
@@ -1642,11 +1686,13 @@
         function goToStep1() {
             hideAllSteps();
             document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('pastProjectsPanel').classList.remove('hidden');
         }
 
         function goToStep2() {
             hideAllSteps();
             document.getElementById('step2').classList.remove('hidden');
+            document.getElementById('pastProjectsPanel').classList.add('hidden');
         }
 
         function goToStep3() {
@@ -1790,7 +1836,7 @@
             }
         };
 
-        // Generate video prompt - creates a concise Runway-optimized prompt (<1000 chars)
+        // Generate video prompt using Claude/OpenAI API
         async function generateVideoPrompt() {
             const campaign = document.getElementById('campaignText').value;
             if (!campaign.trim()) {
@@ -1798,36 +1844,43 @@
                 return;
             }
 
-            const specs = platformSpecs[selectedPlatform];
-            const platform = platformBestPractices[selectedPlatform];
+            // Show loading state
+            showLoading('Generating Video Concept', 'AI is creating your video prompt...');
 
-            // Veo best practices: Subject + Action + Style
-            // Avoid negative words like "no" or "don't"
-            const cameraAction = {
-                smooth: 'The camera smoothly pans across the scene, following the jewelry with fluid cinematic movement.',
-                zoom: 'The camera slowly zooms in, revealing the intricate details and sparkle of the jewelry.',
-                dynamic: 'The camera moves dynamically around the scene, capturing the jewelry from multiple elegant angles.'
-            };
+            try {
+                const response = await fetch('/api/generate-video-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        campaignText: campaign,
+                        platform: selectedPlatform,
+                        duration: selectedDuration,
+                        motionStyle: selectedMotion,
+                        provider: 'claude' // Use Claude by default
+                    })
+                });
 
-            // Create a clear, action-focused prompt following Veo best practices
-            // Format: Subject + Action + Style + Lighting/Atmosphere
-            const prompt = `A beautiful engagement ring sparkling under warm golden light. ${campaign ? campaign + '. ' : ''}
+                const result = await response.json();
 
-${cameraAction[selectedMotion]} The jewelry catches the light, creating brilliant reflections and sparkle.
+                if (result.success) {
+                    document.getElementById('videoPrompt').value = result.prompt;
 
-Style: Premium jewelry advertisement, cinematic quality, warm romantic atmosphere, soft bokeh background. The scene feels aspirational and emotionally meaningful, like a luxury brand commercial.
+                    // Show character count - Veo allows ~4000 chars (1024 tokens)
+                    const charCount = result.prompt.length;
+                    console.log(`Prompt length: ${charCount}/4000 characters (Veo limit)`);
+                    console.log(`[Video Prompt] Generated by ${result.provider}`);
 
-Lighting: Warm golden hour lighting with soft natural highlights dancing across the jewelry surface. The background has a soft, dreamy bokeh effect.
-
-The video captures the precious nature of fine jewelry, showing why it deserves protection and care.`;
-
-            document.getElementById('videoPrompt').value = prompt;
-
-            // Show character count - Veo allows ~4000 chars (1024 tokens)
-            const charCount = prompt.length;
-            console.log(`Prompt length: ${charCount}/4000 characters (Veo limit)`);
-
-            goToStep3();
+                    hideLoading();
+                    goToStep3();
+                } else {
+                    hideLoading();
+                    alert('Failed to generate prompt: ' + result.error);
+                }
+            } catch (error) {
+                hideLoading();
+                console.error('Error generating video prompt:', error);
+                alert('Error: ' + error.message);
+            }
         }
 
         function regeneratePrompt() {
@@ -1874,6 +1927,9 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                     ratio: ratio,
                     provider: videoProvider  // 'veo' or 'runway'
                 };
+
+                console.log('[Video Generation] Sending request with duration:', selectedDuration, 'seconds');
+                console.log('[Video Generation] Full request:', requestBody);
 
                 // Add image for image-to-video mode
                 if (videoMode === 'image' && videoSourceImageData) {
@@ -2021,41 +2077,426 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 videoPlayer.style.display = 'block';
                 placeholder.style.display = 'none';
 
-                // Wait for video to load metadata then capture frames
-                videoPlayer.onloadedmetadata = function() {
-                    captureVideoFrames(videoPlayer);
-                    videoPlayer.play();
+                // Set up video time update listener
+                videoPlayer.ontimeupdate = function() {
+                    updateVideoTimeDisplay();
+                    updateTimelineSlider();
+                    renderVideoTextBoxes();
                 };
-            }
 
-            // Initialize frameOverlays array if empty
-            if (frameOverlays.length === 0 && videoData && videoData.frames) {
-                videoData.frames.forEach((frame, idx) => {
-                    frameOverlays[idx] = { ...overlayDefaults };
-                });
-            }
-
-            // Load current frame's overlay settings
-            if (frameOverlays[currentFrame]) {
-                overlaySettings = { ...frameOverlays[currentFrame] };
-            }
-
-            // Update frame label in controls panel
-            const frameLabel = document.getElementById('currentFrameLabel');
-            if (frameLabel) {
-                frameLabel.textContent = `Frame ${currentFrame + 1}`;
+                videoPlayer.onloadedmetadata = function() {
+                    updateVideoTimeDisplay();
+                };
             }
 
             // Initialize logo grid
             initializeLogoGrid();
 
-            // Initialize drag handlers for text and logo overlays
-            initDragHandlers();
+            // Initialize logo drag handler
+            initLogoDragHandler();
 
-            // Restore UI state from overlaySettings
-            restoreOverlayUIState();
+            // Render text box list
+            renderTextBoxList();
 
-            renderTimeline();
+            // Render timeline markers
+            renderTimelineMarkers();
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            const video = document.getElementById('videoPlayer');
+            const icon = document.getElementById('playPauseIcon');
+            if (!video) return;
+
+            if (video.paused) {
+                video.play();
+                icon.textContent = '⏸';
+            } else {
+                video.pause();
+                icon.textContent = '▶';
+            }
+        }
+
+        // Update video time display
+        function updateVideoTimeDisplay() {
+            const video = document.getElementById('videoPlayer');
+            const display = document.getElementById('currentTimeDisplay');
+            if (!video || !display) return;
+
+            const current = formatTime(video.currentTime);
+            const total = formatTime(video.duration || 0);
+            display.textContent = `${current} / ${total}`;
+        }
+
+        // Update timeline slider position
+        function updateTimelineSlider() {
+            const video = document.getElementById('videoPlayer');
+            const slider = document.getElementById('videoTimeline');
+            if (!video || !slider || !video.duration) return;
+
+            slider.value = (video.currentTime / video.duration) * 100;
+        }
+
+        // Scrub video from timeline slider
+        function scrubVideoTimeline(value) {
+            const video = document.getElementById('videoPlayer');
+            if (!video || !video.duration) return;
+
+            video.currentTime = (value / 100) * video.duration;
+            renderVideoTextBoxes();
+        }
+
+        // Add a new text box at current video time
+        function addVideoTextBox() {
+            const video = document.getElementById('videoPlayer');
+            const currentTime = video ? video.currentTime : 0;
+            const duration = video ? video.duration : selectedDuration;
+
+            const newBox = {
+                id: nextTextBoxId++,
+                text: 'New Text',
+                startTime: currentTime,
+                endTime: Math.min(currentTime + 2, duration), // 2 second duration by default
+                x: 50, // Center horizontally (percentage)
+                y: 80, // Near bottom (percentage)
+                fontSize: 24,
+                fontFamily: 'Gilroy',
+                textColor: '#FFFFFF',
+                bgColor: 'rgba(0,0,0,0.7)'
+            };
+
+            videoTextBoxes.push(newBox);
+            selectedTextBoxId = newBox.id;
+
+            renderTextBoxList();
+            renderVideoTextBoxes();
+            renderTimelineMarkers();
+            showTextBoxEditor(newBox);
+        }
+
+        // Render the list of text boxes in the sidebar
+        function renderTextBoxList() {
+            const list = document.getElementById('textBoxList');
+            if (!list) return;
+
+            if (videoTextBoxes.length === 0) {
+                list.innerHTML = '<p style="color: #7DA3AF; font-size: 0.9rem; text-align: center; padding: 1rem;">No text boxes yet. Click "Add Text Box" to create one.</p>';
+                document.getElementById('textBoxEditor').classList.add('hidden');
+                return;
+            }
+
+            list.innerHTML = videoTextBoxes.map(box => `
+                <div onclick="selectTextBox(${box.id})" style="
+                    padding: 0.75rem;
+                    margin-bottom: 0.5rem;
+                    background: ${selectedTextBoxId === box.id ? '#31D7CA' : '#F4F7FC'};
+                    color: ${selectedTextBoxId === box.id ? 'white' : '#272D3F'};
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                ">
+                    <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${box.text || 'Empty text'}
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">
+                        ${box.startTime.toFixed(1)}s - ${box.endTime.toFixed(1)}s
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select a text box for editing
+        function selectTextBox(id) {
+            selectedTextBoxId = id;
+            const box = videoTextBoxes.find(b => b.id === id);
+            if (box) {
+                showTextBoxEditor(box);
+
+                // Seek video to start time of this box
+                const video = document.getElementById('videoPlayer');
+                if (video) {
+                    video.currentTime = box.startTime;
+                    video.pause();
+                    document.getElementById('playPauseIcon').textContent = '▶';
+                }
+            }
+            renderTextBoxList();
+            renderVideoTextBoxes();
+        }
+
+        // Show the text box editor with current box's values
+        function showTextBoxEditor(box) {
+            const editor = document.getElementById('textBoxEditor');
+            editor.classList.remove('hidden');
+
+            document.getElementById('videoTextInput').value = box.text;
+            document.getElementById('textBoxStart').value = box.startTime.toFixed(1);
+            document.getElementById('textBoxEnd').value = box.endTime.toFixed(1);
+            document.getElementById('videoFontSelect').value = box.fontFamily;
+            document.getElementById('videoTextColor').value = box.textColor;
+            document.getElementById('videoTextBg').value = box.bgColor;
+        }
+
+        // Update the selected text box from editor inputs
+        function updateSelectedTextBox() {
+            if (!selectedTextBoxId) return;
+            const box = videoTextBoxes.find(b => b.id === selectedTextBoxId);
+            if (!box) return;
+
+            box.text = document.getElementById('videoTextInput').value;
+            box.startTime = parseFloat(document.getElementById('textBoxStart').value) || 0;
+            box.endTime = parseFloat(document.getElementById('textBoxEnd').value) || box.startTime + 1;
+            box.fontFamily = document.getElementById('videoFontSelect').value;
+            box.textColor = document.getElementById('videoTextColor').value;
+            box.bgColor = document.getElementById('videoTextBg').value;
+
+            renderTextBoxList();
+            renderVideoTextBoxes();
+            renderTimelineMarkers();
+        }
+
+        // Delete the selected text box
+        function deleteSelectedTextBox() {
+            if (!selectedTextBoxId) return;
+
+            videoTextBoxes = videoTextBoxes.filter(b => b.id !== selectedTextBoxId);
+            selectedTextBoxId = videoTextBoxes.length > 0 ? videoTextBoxes[0].id : null;
+
+            if (selectedTextBoxId) {
+                const box = videoTextBoxes.find(b => b.id === selectedTextBoxId);
+                showTextBoxEditor(box);
+            } else {
+                document.getElementById('textBoxEditor').classList.add('hidden');
+            }
+
+            renderTextBoxList();
+            renderVideoTextBoxes();
+            renderTimelineMarkers();
+        }
+
+        // Render text boxes on the video preview (only those visible at current time)
+        function renderVideoTextBoxes() {
+            const container = document.getElementById('textBoxesContainer');
+            const video = document.getElementById('videoPlayer');
+            if (!container) return;
+
+            const currentTime = video ? video.currentTime : 0;
+
+            // Filter boxes visible at current time
+            const visibleBoxes = videoTextBoxes.filter(box =>
+                currentTime >= box.startTime && currentTime <= box.endTime
+            );
+
+            container.innerHTML = visibleBoxes.map(box => {
+                const isSelected = box.id === selectedTextBoxId;
+                return `
+                    <div class="video-text-box" data-id="${box.id}"
+                         style="
+                             position: absolute;
+                             left: ${box.x}%;
+                             top: ${box.y}%;
+                             transform: translate(-50%, -50%);
+                             pointer-events: auto;
+                             cursor: move;
+                             ${isSelected ? 'outline: 2px dashed #31D7CA; outline-offset: 4px;' : ''}
+                         "
+                         onmousedown="startDragTextBox(event, ${box.id})">
+                        <div style="
+                            background: ${box.bgColor};
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            text-align: center;
+                        ">
+                            <p style="
+                                color: ${box.textColor};
+                                font-family: '${box.fontFamily}', sans-serif;
+                                font-size: ${box.fontSize}px;
+                                font-weight: 700;
+                                margin: 0;
+                                white-space: pre-line;
+                            ">${box.text}</p>
+                        </div>
+                        ${isSelected ? `
+                            <div class="resize-handle resize-br" onmousedown="startResizeTextBox(event, ${box.id})"
+                                 style="position: absolute; bottom: -6px; right: -6px; width: 12px; height: 12px;
+                                        background: #31D7CA; border-radius: 50%; cursor: se-resize; border: 2px solid white;"></div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            container.querySelectorAll('.video-text-box').forEach(el => {
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    selectTextBox(parseInt(el.dataset.id));
+                };
+            });
+        }
+
+        // Drag text box positioning
+        let textBoxDragId = null;
+        let textBoxDragStartX = 0, textBoxDragStartY = 0, textBoxStartX = 0, textBoxStartY = 0;
+
+        function startDragTextBox(e, boxId) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            textBoxDragId = boxId;
+            const box = videoTextBoxes.find(b => b.id === boxId);
+            if (!box) return;
+
+            textBoxDragStartX = e.clientX;
+            textBoxDragStartY = e.clientY;
+            textBoxStartX = box.x;
+            textBoxStartY = box.y;
+
+            document.addEventListener('mousemove', dragTextBox);
+            document.addEventListener('mouseup', stopDragTextBox);
+
+            // Select the box
+            selectTextBox(boxId);
+        }
+
+        function dragTextBox(e) {
+            if (!textBoxDragId) return;
+
+            const container = document.getElementById('videoPreviewContainer');
+            const rect = container.getBoundingClientRect();
+            const box = videoTextBoxes.find(b => b.id === textBoxDragId);
+            if (!box) return;
+
+            const deltaX = ((e.clientX - textBoxDragStartX) / rect.width) * 100;
+            const deltaY = ((e.clientY - textBoxDragStartY) / rect.height) * 100;
+
+            box.x = Math.max(5, Math.min(95, textBoxStartX + deltaX));
+            box.y = Math.max(5, Math.min(95, textBoxStartY + deltaY));
+
+            renderVideoTextBoxes();
+        }
+
+        function stopDragTextBox() {
+            textBoxDragId = null;
+            document.removeEventListener('mousemove', dragTextBox);
+            document.removeEventListener('mouseup', stopDragTextBox);
+        }
+
+        // Resize text box
+        let textBoxResizeId = null;
+        let textBoxResizeStartX = 0, textBoxResizeStartY = 0, textBoxStartFontSize = 24;
+
+        function startResizeTextBox(e, boxId) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            textBoxResizeId = boxId;
+            const box = videoTextBoxes.find(b => b.id === boxId);
+            if (!box) return;
+
+            textBoxResizeStartX = e.clientX;
+            textBoxResizeStartY = e.clientY;
+            textBoxStartFontSize = box.fontSize;
+
+            document.addEventListener('mousemove', resizeTextBox);
+            document.addEventListener('mouseup', stopResizeTextBox);
+        }
+
+        function resizeTextBox(e) {
+            if (!textBoxResizeId) return;
+
+            const box = videoTextBoxes.find(b => b.id === textBoxResizeId);
+            if (!box) return;
+
+            const deltaX = e.clientX - textBoxResizeStartX;
+            const deltaY = e.clientY - textBoxResizeStartY;
+            const delta = (deltaX + deltaY) / 4; // Diagonal movement controls size
+
+            box.fontSize = Math.max(12, Math.min(72, textBoxStartFontSize + delta));
+
+            renderVideoTextBoxes();
+        }
+
+        function stopResizeTextBox() {
+            textBoxResizeId = null;
+            document.removeEventListener('mousemove', resizeTextBox);
+            document.removeEventListener('mouseup', stopResizeTextBox);
+        }
+
+        // Render timeline markers showing where text boxes appear
+        function renderTimelineMarkers() {
+            const container = document.getElementById('timelineMarkers');
+            const video = document.getElementById('videoPlayer');
+            if (!container) return;
+
+            const duration = video ? video.duration : selectedDuration;
+            if (!duration) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = videoTextBoxes.map(box => {
+                const leftPercent = (box.startTime / duration) * 100;
+                const widthPercent = ((box.endTime - box.startTime) / duration) * 100;
+                const isSelected = box.id === selectedTextBoxId;
+
+                return `
+                    <div onclick="selectTextBox(${box.id})" style="
+                        position: absolute;
+                        left: ${leftPercent}%;
+                        width: ${widthPercent}%;
+                        height: 12px;
+                        top: 4px;
+                        background: ${isSelected ? '#31D7CA' : '#7DA3AF'};
+                        border-radius: 4px;
+                        cursor: pointer;
+                        opacity: ${isSelected ? 1 : 0.6};
+                    " title="${box.text}: ${box.startTime.toFixed(1)}s - ${box.endTime.toFixed(1)}s"></div>
+                `;
+            }).join('');
+        }
+
+        // Initialize logo drag handler
+        function initLogoDragHandler() {
+            const logoPreview = document.getElementById('logoOverlayPreview');
+            const container = document.getElementById('videoPreviewContainer');
+            if (!logoPreview || !container) return;
+
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            logoPreview.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                const rect = container.getBoundingClientRect();
+                const logoRect = logoPreview.getBoundingClientRect();
+
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = ((logoRect.left + logoRect.width/2 - rect.left) / rect.width) * 100;
+                startTop = ((logoRect.top + logoRect.height/2 - rect.top) / rect.height) * 100;
+
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const rect = container.getBoundingClientRect();
+                const deltaX = ((e.clientX - startX) / rect.width) * 100;
+                const deltaY = ((e.clientY - startY) / rect.height) * 100;
+
+                const newX = Math.max(5, Math.min(95, startLeft + deltaX));
+                const newY = Math.max(5, Math.min(95, startTop + deltaY));
+
+                logoPreview.style.left = newX + '%';
+                logoPreview.style.top = newY + '%';
+                logoPreview.style.right = 'auto';
+                logoPreview.style.bottom = 'auto';
+                logoPreview.style.transform = 'translate(-50%, -50%)';
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
         }
 
         // Restore UI state when returning to editor
@@ -2152,15 +2593,16 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
             const frameCount = 5;
             const frameInterval = duration / frameCount;
 
-            // Initialize frames array if not exists
-            if (!videoData.frames || videoData.frames.length === 0) {
-                videoData.frames = [];
-                for (let i = 0; i < frameCount; i++) {
-                    videoData.frames.push({
-                        time: i * frameInterval,
-                        thumbnail: null
-                    });
-                }
+            // IMPORTANT: Pause video while capturing frames
+            video.pause();
+
+            // Initialize frames array
+            videoData.frames = [];
+            for (let i = 0; i < frameCount; i++) {
+                videoData.frames.push({
+                    time: i * frameInterval,
+                    thumbnail: null
+                });
             }
 
             // Capture thumbnails from video
@@ -2169,26 +2611,50 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
             canvas.width = 180;
             canvas.height = 320;
 
-            let framesCaptured = 0;
+            let currentCaptureIndex = 0;
 
-            function captureFrame(frameIndex) {
-                if (frameIndex >= frameCount) {
-                    renderTimeline();
+            function captureAndAdvance() {
+                // Capture the current frame to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                videoData.frames[currentCaptureIndex].thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                console.log(`[CaptureFrames] Captured frame ${currentCaptureIndex} at time ${video.currentTime.toFixed(2)}s`);
+
+                // Move to next frame
+                currentCaptureIndex++;
+
+                if (currentCaptureIndex >= frameCount) {
+                    // Done - clean up and render
+                    video.onseeked = null;
                     video.currentTime = 0;
+
+                    // Initialize frameOverlays for the new frames
+                    if (frameOverlays.length === 0) {
+                        videoData.frames.forEach((frame, idx) => {
+                            frameOverlays[idx] = { ...overlayDefaults };
+                        });
+                    }
+
+                    renderTimeline();
+                    console.log('[CaptureFrames] All frames captured, rendering timeline');
                     return;
                 }
 
-                video.currentTime = videoData.frames[frameIndex].time;
+                // Seek to next frame
+                const nextTime = videoData.frames[currentCaptureIndex].time;
+                console.log(`[CaptureFrames] Seeking to frame ${currentCaptureIndex}, time: ${nextTime}s`);
+                video.currentTime = nextTime;
             }
 
+            // Set up the seeked handler
             video.onseeked = function() {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                videoData.frames[framesCaptured].thumbnail = canvas.toDataURL('image/jpeg', 0.7);
-                framesCaptured++;
-                captureFrame(framesCaptured);
+                // Small delay to ensure frame is rendered
+                setTimeout(captureAndAdvance, 50);
             };
 
-            captureFrame(0);
+            // Start capturing from first frame
+            const firstTime = videoData.frames[0].time;
+            console.log(`[CaptureFrames] Starting capture, seeking to first frame at ${firstTime}s`);
+            video.currentTime = firstTime;
         }
 
         function renderTimeline() {
@@ -2254,6 +2720,29 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
             // Save current frame's overlay settings before switching
             saveCurrentFrameOverlay();
 
+            const videoPlayer = document.getElementById('videoPlayer');
+
+            // If clicking the same frame again, deselect and play full video
+            if (currentFrame === index) {
+                currentFrame = -1; // No frame selected
+
+                // Update frame label
+                const frameLabel = document.getElementById('currentFrameLabel');
+                if (frameLabel) {
+                    frameLabel.textContent = 'All Frames';
+                }
+
+                // Play the full video
+                if (videoPlayer) {
+                    videoPlayer.currentTime = 0;
+                    videoPlayer.play();
+                }
+
+                renderTimeline();
+                updateOverlayPreview();
+                return;
+            }
+
             // Switch to new frame
             currentFrame = index;
 
@@ -2266,13 +2755,32 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 frameLabel.textContent = `Frame ${index + 1}`;
             }
 
+            // Seek video player to show this frame in the preview
+            if (videoPlayer && videoData && videoData.frames && videoData.frames[index]) {
+                const targetTime = videoData.frames[index].time;
+                console.log(`[SelectFrame] Seeking to frame ${index}, time: ${targetTime}s`);
+                videoPlayer.pause(); // Pause so user can see the frame
+                videoPlayer.currentTime = targetTime;
+
+                // Also show the video player if it's hidden
+                if (videoPlayer.style.display === 'none') {
+                    videoPlayer.style.display = 'block';
+                    const placeholder = document.getElementById('videoPlaceholder');
+                    if (placeholder) placeholder.style.display = 'none';
+                }
+            } else {
+                console.log('[SelectFrame] Cannot seek - videoPlayer:', !!videoPlayer, 'videoData:', !!videoData, 'frames:', videoData?.frames?.length);
+            }
+
             renderTimeline();
             updateOverlayPreview();
         }
 
         // Save current overlay settings to the frameOverlays array
         function saveCurrentFrameOverlay() {
-            frameOverlays[currentFrame] = { ...overlaySettings };
+            if (currentFrame >= 0) {
+                frameOverlays[currentFrame] = { ...overlaySettings };
+            }
         }
 
         // Load overlay settings for a specific frame
@@ -2699,14 +3207,58 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 scrubberPlaceholder.style.display = 'none';
 
                 scrubberVideo.onloadedmetadata = function() {
-                    document.getElementById('scrubberDuration').textContent = formatTime(scrubberVideo.duration);
-                    // Capture thumbnails from video
-                    captureThumbnailsFromVideo(scrubberVideo, grid);
+                    const durationEl = document.getElementById('scrubberDuration');
+                    if (durationEl) {
+                        durationEl.textContent = formatTime(scrubberVideo.duration);
+                    }
                 };
             } else {
                 scrubberVideo.style.display = 'none';
                 scrubberPlaceholder.style.display = 'flex';
-                // Show placeholder thumbnails
+            }
+
+            // Reuse frames already captured in Step 4 (videoData.frames)
+            if (videoData && videoData.frames && videoData.frames.length > 0) {
+                // Use existing frame thumbnails
+                videoData.frames.forEach((frame, i) => {
+                    const thumbEl = document.createElement('div');
+                    thumbEl.className = 'thumbnail-option' + (i === 0 ? ' selected' : '');
+
+                    // Use captured thumbnail or gradient placeholder
+                    const thumbnailStyle = frame.thumbnail
+                        ? `background-image: url(${frame.thumbnail}); background-size: cover; background-position: center;`
+                        : `background: linear-gradient(135deg, #272D3F ${i * 15}%, #31D7CA ${100 - i * 10}%);`;
+
+                    thumbEl.innerHTML = `
+                        <div style="aspect-ratio: 9/16; ${thumbnailStyle} border-radius: 8px 8px 0 0;"></div>
+                        <div class="label">Frame ${i + 1} (${frame.time.toFixed(1)}s)</div>
+                    `;
+
+                    thumbEl.onclick = () => {
+                        document.querySelectorAll('.thumbnail-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        thumbEl.classList.add('selected');
+                        selectedThumbnail = frame.thumbnail || i;
+
+                        // Update preview
+                        const preview = document.getElementById('thumbnailPreview');
+                        if (frame.thumbnail) {
+                            preview.innerHTML = `<div style="width: 100%; height: 100%; background-image: url(${frame.thumbnail}); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
+                        } else {
+                            preview.innerHTML = `<div style="width: 100%; height: 100%; ${thumbnailStyle} border-radius: 8px; display: flex; align-items: center; justify-content: center;"><span style="color: #7DA3AF;">Frame ${i + 1}</span></div>`;
+                        }
+                    };
+
+                    grid.appendChild(thumbEl);
+                });
+
+                // Auto-select first thumbnail
+                if (grid.firstChild) {
+                    grid.firstChild.click();
+                }
+            } else {
+                // No frames available, show placeholders
                 renderPlaceholderThumbnails(grid);
             }
         }
@@ -2765,14 +3317,14 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 thumbEl.className = 'thumbnail-option' + (i === 0 ? ' selected' : '');
 
                 thumbEl.innerHTML = `
-                    <div style="aspect-ratio: 9/16; background-image: url(${thumb.dataUrl}); background-size: cover; background-position: center; border-radius: 4px;"></div>
-                    <div class="label">Frame ${i + 1}</div>
+                    <div style="aspect-ratio: 9/16; background-image: url(${thumb.dataUrl}); background-size: cover; background-position: center; border-radius: 8px 8px 0 0;"></div>
+                    <div class="label">Frame ${i + 1} (${thumb.time.toFixed(1)}s)</div>
                 `;
 
                 thumbEl.onclick = () => {
                     document.querySelectorAll('.thumbnail-option').forEach(opt => opt.classList.remove('selected'));
                     thumbEl.classList.add('selected');
-                    selectedThumbnail = i;
+                    selectedThumbnail = thumb.dataUrl;
                     const preview = document.getElementById('thumbnailPreview');
                     preview.innerHTML = `<div style="width: 100%; height: 100%; background-image: url(${thumb.dataUrl}); background-size: cover; background-position: center; border-radius: 8px;"></div>`;
                 };
@@ -2795,7 +3347,7 @@ The video captures the precious nature of fine jewelry, showing why it deserves 
                 const gradientEnd = 100 - i * 15;
 
                 thumb.innerHTML = `
-                    <div style="aspect-ratio: 9/16; background: linear-gradient(135deg, #272D3F ${gradientStart}%, #31D7CA ${gradientEnd}%); border-radius: 4px; display: flex; align-items: center; justify-content: center;"><span style="color: #7DA3AF; font-size: 0.7rem;">No video</span></div>
+                    <div style="aspect-ratio: 9/16; background: linear-gradient(135deg, #272D3F ${gradientStart}%, #31D7CA ${gradientEnd}%); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center;"><span style="color: rgba(255,255,255,0.4); font-size: 0.85rem;">No video</span></div>
                     <div class="label">Frame ${i + 1}</div>
                 `;
 

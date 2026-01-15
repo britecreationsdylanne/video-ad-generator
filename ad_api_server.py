@@ -79,10 +79,37 @@ PLATFORM_SIZES = {
         {'name': 'Standard Pin', 'width': 1000, 'height': 1500},
         {'name': 'Square', 'width': 1000, 'height': 1000}
     ],
+    'demandgen': [
+        {'name': 'Landscape', 'width': 1200, 'height': 628},
+        {'name': 'Square', 'width': 1200, 'height': 1200},
+        {'name': 'Portrait', 'width': 960, 'height': 1200},
+        {'name': 'Vertical', 'width': 1080, 'height': 1920}
+    ],
+    'pmax': [
+        {'name': 'Landscape', 'width': 1200, 'height': 628},
+        {'name': 'Square', 'width': 1200, 'height': 1200},
+        {'name': 'Portrait', 'width': 960, 'height': 1200}
+    ],
     'general': [
         {'name': 'Portrait', 'width': 1080, 'height': 1920}
     ]
 }
+
+# Google Ads Creative Best Practices (for Demand Gen and Performance Max)
+GOOGLE_ADS_BEST_PRACTICES = """
+GOOGLE ADS CREATIVE BEST PRACTICES:
+- Use high-quality, clear images with the subject centered in 80% of the frame
+- Minimal text overlay (less than 20% of image area)
+- Effective lighting and professional composition
+- Show the product/service clearly and prominently
+- Use brand colors consistently but don't overwhelm
+- Avoid cluttered backgrounds - clean, simple compositions work best
+- Create visually compelling imagery that inspires action
+- Feature aspirational lifestyle imagery showing jewelry in context
+- Ensure images work well at smaller sizes (mobile-first design)
+- Use contrasting colors to make key elements stand out
+- Include clear visual hierarchy with one focal point
+"""
 
 @app.route('/')
 def serve_index():
@@ -124,7 +151,32 @@ def generate_prompt():
         print(f"  Provider: {provider}")
         print(f"  Platforms: {platforms}")
 
-        prompt_context = f"""You are an expert at creating image generation prompts for AI models.
+        # Check if Google Ads platforms are selected
+        is_google_ads = any(p.lower() in ['demandgen', 'pmax'] for p in platforms)
+
+        # Build platform-specific context
+        if is_google_ads:
+            platform_context = f"""You are an expert at creating image generation prompts for Google Ads campaigns.
+
+Create an image generation prompt for BriteCo jewelry insurance ads for {', '.join(platforms)}.
+
+Campaign context: {campaign_text}
+
+{BRAND_GUIDELINES}
+
+{GOOGLE_ADS_BEST_PRACTICES}
+
+IMPORTANT FOR GOOGLE ADS:
+- Images must be high-quality and work across YouTube, Discover, Gmail, and Display Network
+- Subject should be centered in 80% of frame space
+- Keep text overlay minimal (under 20% of image)
+- Create aspirational lifestyle imagery that inspires action
+- Ensure the imagery works well at smaller mobile sizes
+- Use clear visual hierarchy with one strong focal point
+
+Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google Gemini) image generator. Make it specific, visual, and actionable."""
+        else:
+            platform_context = f"""You are an expert at creating image generation prompts for AI models.
 
 Create an image generation prompt for BriteCo jewelry insurance ads for {', '.join(platforms)}.
 
@@ -133,6 +185,8 @@ Campaign context: {campaign_text}
 {BRAND_GUIDELINES}
 
 Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google Gemini) image generator. Make it specific, visual, and actionable."""
+
+        prompt_context = platform_context
 
         # Use selected provider
         if provider == 'claude':
@@ -567,6 +621,96 @@ def generate_animation():
             'frames': frame_images,  # Individual frames for editing
             'frame_count': len(frames),
             'fps': fps
+        })
+
+    except Exception as e:
+        print(f"[API ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# VIDEO PROMPT GENERATION (Claude/OpenAI)
+# ============================================================================
+
+@app.route('/api/generate-video-prompt', methods=['POST'])
+def generate_video_prompt():
+    """Generate video prompt using Claude or OpenAI"""
+    try:
+        data = request.json
+        campaign_text = data.get('campaignText', '')
+        platform = data.get('platform', 'tiktok')
+        duration = data.get('duration', 6)
+        motion_style = data.get('motionStyle', 'smooth')
+        provider = data.get('provider', 'claude')
+
+        print(f"\n[API] Generate Video Prompt Request")
+        print(f"  Provider: {provider}")
+        print(f"  Platform: {platform}")
+        print(f"  Duration: {duration}s")
+        print(f"  Motion: {motion_style}")
+
+        # Camera motion descriptions
+        motion_descriptions = {
+            'smooth': 'smooth, fluid camera movement with gentle pans',
+            'zoom': 'gradual zoom revealing details',
+            'dynamic': 'dynamic camera angles with elegant movement'
+        }
+        motion_desc = motion_descriptions.get(motion_style, motion_descriptions['smooth'])
+
+        prompt_context = f"""You are an expert at creating video generation prompts for AI video models like Google Veo.
+
+Create a video generation prompt for a BriteCo jewelry insurance advertisement.
+
+Campaign context: {campaign_text}
+
+Platform: {platform}
+Video Duration: {duration} seconds
+Camera Style: {motion_desc}
+
+{BRAND_GUIDELINES}
+
+VEO VIDEO BEST PRACTICES:
+- Structure: Subject + Action + Style + Lighting
+- Use clear, action-focused descriptions
+- Avoid negative words like "no" or "don't"
+- Describe camera movement explicitly
+- Include lighting and atmosphere details
+- Keep it under 500 words for best results
+
+Create ONE detailed, cinematic video prompt that:
+1. Opens with an establishing shot of jewelry
+2. Describes the camera movement and action
+3. Captures the emotional, aspirational feeling of protecting precious jewelry
+4. Ends with a memorable visual moment
+
+The video should feel like a premium luxury brand commercial that makes viewers feel the importance of protecting their valuable jewelry."""
+
+        # Use selected provider
+        if provider == 'claude':
+            print("[API] Using Claude for video prompt...")
+            result = claude_client.generate_content(
+                prompt=prompt_context,
+                max_tokens=800,
+                temperature=0.8
+            )
+            prompt = result.get('content', '')
+        else:
+            print("[API] Using OpenAI for video prompt...")
+            result = openai_client.generate_content(
+                prompt=prompt_context,
+                max_tokens=800,
+                temperature=0.8
+            )
+            prompt = result.get('content', '')
+
+        print(f"[API] Video prompt generated successfully ({len(prompt)} chars)")
+
+        return jsonify({
+            'success': True,
+            'prompt': prompt,
+            'provider': provider
         })
 
     except Exception as e:
