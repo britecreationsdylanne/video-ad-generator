@@ -25,9 +25,7 @@ RUNWAY_API_BASE = 'https://api.dev.runwayml.com/v1'
 GOOGLE_VEO_API_KEY = os.getenv('GOOGLE_VEO_API_KEY')
 VEO_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
-# Add venue-newsletter-tool backend to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'venue-newsletter-tool', 'backend'))
-
+# Import from local integrations folder
 from integrations.openai_client import OpenAIClient
 from integrations.gemini_client import GeminiClient
 from integrations.claude_client import ClaudeClient
