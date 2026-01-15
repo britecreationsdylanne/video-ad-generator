@@ -1,0 +1,13 @@
+runtime: python39
+service: video-ad-generator
+
+instance_class: F2
+
+env_variables:
+  OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  GOOGLE_AI_API_KEY: "${GOOGLE_AI_API_KEY}"
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+
+handlers:
+- url: /.*
+  script: auto
