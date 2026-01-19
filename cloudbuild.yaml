@@ -1,0 +1,14 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'briteco-video-ad-generator'
+      - '--source=.'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=OPENAI_API_KEY=${_OPENAI_API_KEY},GOOGLE_AI_API_KEY=${_GOOGLE_AI_API_KEY},ANTHROPIC_API_KEY=${_ANTHROPIC_API_KEY},RUNWAY_API_KEY=${_RUNWAY_API_KEY},GOOGLE_VEO_API_KEY=${_GOOGLE_VEO_API_KEY}'
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: '1200s'
