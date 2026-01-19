@@ -21,8 +21,8 @@ class GeminiClient:
 
         # Initialize the client with API key
         self.client = genai.Client(api_key=self.api_key)
-        # Use Gemini 2.5 Flash Image for image generation (Nano Banana)
-        self.default_model = os.getenv("DEFAULT_IMAGE_MODEL", "gemini-2.5-flash-image")
+        # Use Gemini 3 Pro Image Preview for image generation
+        self.default_model = os.getenv("DEFAULT_IMAGE_MODEL", "gemini-3-pro-image-preview")
 
     def generate_image(
         self,
