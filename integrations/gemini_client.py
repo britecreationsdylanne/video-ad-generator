@@ -33,11 +33,11 @@ class GeminiClient:
         number_of_images: int = 1,
     ) -> Dict:
         """
-        Generate an image using Nano Banana (Gemini 2.5 Flash)
+        Generate an image using Nano Banana (Gemini 2.5 Flash Image)
 
         Args:
             prompt: Image description prompt
-            model: Model to use (default: gemini-2.5-flash-preview-04-17)
+            model: Model to use (default: gemini-2.5-flash-image)
             aspect_ratio: Not used for Nano Banana (kept for compatibility)
             image_size: Not used for Nano Banana (kept for compatibility)
             number_of_images: Not used for Nano Banana (kept for compatibility)
@@ -58,11 +58,12 @@ class GeminiClient:
         start_time = time.time()
 
         try:
-            # Use Nano Banana for image generation
+            # Use gemini-2.5-flash-image (Nano Banana) for image generation
             print(f"[NANO BANANA] Using model: {model_name}")
             print(f"[NANO BANANA] Prompt: {prompt[:100]}...")
 
             # Generate image using generate_content
+            # Note: gemini-2.5-flash-image is a dedicated image model, no config needed
             response = self.client.models.generate_content(
                 model=model_name,
                 contents=[prompt]  # MUST be a list!
@@ -147,6 +148,125 @@ class GeminiClient:
             import traceback
             traceback.print_exc()
             raise
+
+    def search_web(self, query: str, max_results: int = 5) -> list:
+        """
+        Search web using Gemini with Google Search grounding
+
+        Args:
+            query: Search query
+            max_results: Maximum number of results
+
+        Returns:
+            List of search results with title, description, url
+        """
+        try:
+            # Use Gemini 2.0 Flash with Google Search grounding
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash-exp",
+                contents=[f"""Search Google for {max_results} recent, real articles about: {query}
+
+For each article found, provide:
+- Title (from the actual article)
+- Brief description (1-2 sentences)
+- Source URL (the actual URL)
+- How recent it is
+
+Return as JSON array:
+[
+  {{"title": "...", "description": "...", "url": "...", "age": "..."}},
+  ...
+]
+
+Return ONLY the JSON array."""],
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=2000,
+                    response_modalities=["TEXT"],
+                    tools=[types.Tool(google_search=types.GoogleSearch())]
+                )
+            )
+
+            # Extract results
+            results = []
+            if response.text:
+                content = response.text.strip()
+                # Remove markdown code blocks if present
+                if "```json" in content:
+                    content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
+
+                try:
+                    import json
+                    results = json.loads(content)
+                    if isinstance(results, list):
+                        return results[:max_results]
+                except:
+                    pass
+
+            return results[:max_results] if results else []
+
+        except Exception as e:
+            print(f"Gemini web search error: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def search_wedding_news(self, month: str) -> list:
+        """Search for wedding venue industry news"""
+        query = f"wedding venue industry news statistics data trends 2025 2026 {month}"
+        return self.search_web(query, max_results=15)  # Get more results for refresh pool
+
+    def search_wedding_tips(self, month: str) -> list:
+        """Search for wedding venue management tips"""
+        query = f"wedding venue marketing tips advice strategies 2025 2026 {month}"
+        return self.search_web(query, max_results=15)  # Get more results for refresh pool
+
+    def search_wedding_trends(self, month: str, season: str) -> list:
+        """Search for seasonal wedding trends"""
+        query = f"wedding trends {season} 2025 2026 venue decor planning {month}"
+        return self.search_web(query, max_results=15)  # Get more results for refresh pool
+
+    def generate_newsletter_image(
+        self,
+        section_type: str,
+        title: str,
+        content_summary: str,
+        image_size: str = "1K"
+    ) -> Dict:
+        """
+        Generate an image optimized for newsletter sections
+
+        Args:
+            section_type: 'news', 'tip', or 'trend'
+            title: Section title
+            content_summary: Brief summary of content
+            image_size: Image resolution (1K, 2K, 4K)
+
+        Returns:
+            Image generation result
+        """
+        # Base style for all venue newsletter images
+        base_style = "Professional, elegant, modern wedding venue photography, warm natural lighting, high-end aesthetic, sophisticated composition"
+
+        # Section-specific styles
+        style_additions = {
+            "news": "editorial style, newsworthy scene, subtle branding elements, contemporary venue space",
+            "tip": "intimate venue details, personalized touches, client-focused perspective, welcoming atmosphere",
+            "trend": "seasonal wedding decor, trendy color palette, stylish arrangements, inspirational setting"
+        }
+
+        section_style = style_additions.get(section_type, "")
+
+        # Construct optimized prompt
+        prompt = f"{title} - {base_style}, {section_style}. {content_summary}"
+
+        return self.generate_image(
+            prompt=prompt,
+            aspect_ratio="16:9",  # Horizontal for email headers
+            image_size=image_size
+        )
 
 
 # Singleton instance
