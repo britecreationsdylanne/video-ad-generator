@@ -9,8 +9,11 @@ import sys
 import json
 import time
 import requests
+import subprocess
+import tempfile
+import base64
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, send_from_directory, Response, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -1334,6 +1337,95 @@ def generate_video_sync():
 
     except Exception as e:
         print(f"[API ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/trim-video', methods=['POST'])
+def trim_video():
+    """Trim video to specified start/end times and convert to MP4"""
+    try:
+        data = request.json
+        video_url = data.get('video_url')
+        start_time = float(data.get('start', 0))
+        end_time = float(data.get('end'))
+
+        if not video_url:
+            return jsonify({'success': False, 'error': 'No video URL provided'}), 400
+
+        if not end_time or end_time <= start_time:
+            return jsonify({'success': False, 'error': 'Invalid trim times'}), 400
+
+        duration = end_time - start_time
+        print(f"[API] Trim video request: {start_time}s to {end_time}s ({duration}s)")
+
+        # Create temp files
+        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as input_file:
+            input_path = input_file.name
+
+        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as output_file:
+            output_path = output_file.name
+
+        try:
+            # Download the video
+            print(f"[API] Downloading video from: {video_url[:100]}...")
+            response = requests.get(video_url, stream=True, timeout=60)
+            response.raise_for_status()
+
+            with open(input_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            print(f"[API] Video downloaded, trimming with FFmpeg...")
+
+            # Use FFmpeg to trim and convert to MP4
+            cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(start_time),
+                '-i', input_path,
+                '-t', str(duration),
+                '-c:v', 'libx264',
+                '-preset', 'fast',
+                '-crf', '23',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-movflags', '+faststart',
+                output_path
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+            if result.returncode != 0:
+                print(f"[API] FFmpeg error: {result.stderr}")
+                return jsonify({'success': False, 'error': f'FFmpeg error: {result.stderr[:500]}'}), 500
+
+            print(f"[API] Video trimmed successfully")
+
+            # Read the output file and return as base64
+            with open(output_path, 'rb') as f:
+                video_data = f.read()
+
+            video_base64 = base64.b64encode(video_data).decode('utf-8')
+
+            return jsonify({
+                'success': True,
+                'video_data': video_base64,
+                'filename': f'trimmed_video_{start_time:.1f}s-{end_time:.1f}s.mp4',
+                'duration': duration
+            })
+
+        finally:
+            # Clean up temp files
+            if os.path.exists(input_path):
+                os.remove(input_path)
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'success': False, 'error': 'FFmpeg timed out'}), 500
+    except Exception as e:
+        print(f"[API ERROR] Trim video error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500

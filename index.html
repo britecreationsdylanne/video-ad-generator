@@ -3022,71 +3022,51 @@
                 return;
             }
 
-            // Show recording message
+            // Show processing message
             const originalBtn = event.target;
-            originalBtn.textContent = 'Recording...';
+            originalBtn.textContent = 'Processing...';
             originalBtn.disabled = true;
 
             try {
-                // Create canvas to capture video
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth || 1080;
-                canvas.height = video.videoHeight || 1920;
-                const ctx = canvas.getContext('2d');
+                console.log('[Trim] Sending to server:', video.src.substring(0, 100), start, end);
 
-                // Set up MediaRecorder
-                const stream = canvas.captureStream(30);
-                const mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: 'video/webm;codecs=vp9',
-                    videoBitsPerSecond: 5000000
+                const response = await fetch('/api/trim-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_url: video.src,
+                        start: start,
+                        end: end
+                    })
                 });
 
-                const chunks = [];
-                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                const result = await response.json();
 
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `trimmed_video_${start.toFixed(1)}s-${end.toFixed(1)}s.webm`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    originalBtn.textContent = 'Save Video';
-                    originalBtn.disabled = false;
-                };
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to trim video');
+                }
 
-                // Start recording
-                mediaRecorder.start();
+                // Download the MP4
+                const videoData = atob(result.video_data);
+                const videoArray = new Uint8Array(videoData.length);
+                for (let i = 0; i < videoData.length; i++) {
+                    videoArray[i] = videoData.charCodeAt(i);
+                }
+                const blob = new Blob([videoArray], { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
 
-                // Play the trimmed section
-                video.currentTime = start;
-                video.muted = true;
-                await video.play();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename || `trimmed_video_${start.toFixed(1)}s-${end.toFixed(1)}s.mp4`;
+                a.click();
+                URL.revokeObjectURL(url);
 
-                // Record frames
-                const recordFrame = () => {
-                    if (video.currentTime >= end || video.paused) {
-                        video.pause();
-                        mediaRecorder.stop();
-                        return;
-                    }
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    requestAnimationFrame(recordFrame);
-                };
-                recordFrame();
-
-                // Stop after duration
-                setTimeout(() => {
-                    if (mediaRecorder.state === 'recording') {
-                        video.pause();
-                        mediaRecorder.stop();
-                    }
-                }, (duration + 0.5) * 1000);
+                console.log('[Trim] Video saved successfully as MP4');
 
             } catch (error) {
                 console.error('Error saving video:', error);
                 alert('Error saving video: ' + error.message);
+            } finally {
                 originalBtn.textContent = 'Save Video';
                 originalBtn.disabled = false;
             }
