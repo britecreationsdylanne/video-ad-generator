@@ -3230,6 +3230,8 @@
             document.getElementById('logoOverlayPreview').style.display = show ? 'block' : 'none';
 
             if (show) {
+                // Ensure logo grid is populated
+                initializeLogoGrid();
                 document.getElementById('logoPreviewImg').src = overlaySettings.logoSrc;
                 document.getElementById('logoPreviewImg').style.height = overlaySettings.logoSize + 'px';
                 updateLogoPosition();

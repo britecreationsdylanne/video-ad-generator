@@ -4,10 +4,11 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for PIL/Pillow
+# Install system dependencies for PIL/Pillow and FFmpeg for video processing
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for better caching)
