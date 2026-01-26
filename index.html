@@ -1085,10 +1085,9 @@
                             <!-- Text boxes will be rendered here dynamically -->
                         </div>
 
-                        <!-- Logo overlay - DRAGGABLE -->
+                        <!-- Logo overlay - DRAGGABLE (drag handle removed) -->
                         <div id="logoOverlayPreview" class="draggable-overlay" style="position: absolute; bottom: 20px; right: 20px; display: none; cursor: move;">
                             <img id="logoPreviewImg" src="" alt="Logo" style="height: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                            <div class="drag-handle" style="position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; background: #FC883A; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
                         </div>
                     </div>
 
@@ -1214,7 +1213,7 @@
                     <!-- Logo Section - Always visible, click to add -->
                     <h4>Logo <span id="logoStatus" style="font-size: 0.8rem; color: #7DA3AF; font-weight: normal;">(click to add)</span></h4>
                     <div class="control-group">
-                        <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
+                        <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-height: 180px; overflow-y: auto; padding-right: 0.25rem;">
                             <!-- Logos will be populated by JS -->
                         </div>
                     </div>
@@ -1320,15 +1319,6 @@
                         <!-- Logo overlay for final preview -->
                         <div id="finalLogoOverlay" style="position: absolute; display: none; pointer-events: none;"></div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <button class="btn-primary" onclick="downloadVideo()" style="margin-top: 0; padding: 0.75rem 1rem; font-size: 0.9rem;">
-                            Download MP4
-                        </button>
-                        <button class="btn-secondary" onclick="downloadThumbnail()" style="margin-top: 0; padding: 0.75rem 1rem; font-size: 0.9rem;">
-                            Download Thumbnail
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Ad Copy Summary - hidden for General Video -->
@@ -1338,15 +1328,18 @@
                         <!-- Copy summary will appear here -->
                     </div>
 
-                    <button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="copyAllText()">
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="copyAllText()">
                         Copy All Text
                     </button>
                 </div>
             </div>
 
-            <div class="button-group" style="margin-top: 2rem;">
-                <button class="btn-secondary" onclick="goToStep6()">Back</button>
-                <button class="btn-primary" onclick="startOver()">
+            <!-- All buttons at bottom -->
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2rem; justify-content: center;">
+                <button class="btn-primary" onclick="goToStep6()" style="padding: 0.75rem 1.5rem;">Back</button>
+                <button class="btn-primary" onclick="downloadVideo()" style="padding: 0.75rem 1.5rem;">Download MP4</button>
+                <button class="btn-primary" onclick="downloadThumbnail()" style="padding: 0.75rem 1.5rem;">Download Thumbnail</button>
+                <button onclick="startOver()" style="background: #FC883A; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
                     Start New Video
                 </button>
             </div>
@@ -1514,8 +1507,8 @@
                 const isSelected = overlaySettings.showLogo && overlaySettings.selectedLogoIndex === index;
                 logoEl.className = 'logo-card' + (isSelected ? ' selected' : '');
                 logoEl.onclick = () => selectLogo(logo.src, logoEl, index);
-                logoEl.style.cssText = 'padding: 0.5rem; border: 2px solid ' + (isSelected ? '#31D7CA' : '#E1E7EF') + '; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 50px; transition: all 0.2s;';
-                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 35px; object-fit: contain;">`;
+                logoEl.style.cssText = 'padding: 0.75rem; border: 2px solid ' + (isSelected ? '#31D7CA' : '#E1E7EF') + '; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 65px; transition: all 0.2s;';
+                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 50px; object-fit: contain;">`;
                 grid.appendChild(logoEl);
             });
         }
