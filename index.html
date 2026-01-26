@@ -970,20 +970,12 @@
 
             <div style="margin-bottom: 2rem;">
                 <label>Video Duration</label>
-                <div class="duration-selector">
-                    <div class="duration-option" onclick="selectDuration(4, this)">
-                        <div class="time">4s</div>
-                        <div class="label">Quick</div>
-                    </div>
-                    <div class="duration-option selected" onclick="selectDuration(6, this)">
-                        <div class="time">6s</div>
-                        <div class="label">Standard</div>
-                    </div>
-                    <div class="duration-option" onclick="selectDuration(8, this)">
-                        <div class="time">8s</div>
-                        <div class="label">Extended</div>
-                    </div>
-                </div>
+                <select id="durationSelect" onchange="selectDuration(parseInt(this.value))" style="width: 100%; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer; margin-top: 0.5rem;">
+                    <option value="5">5 seconds</option>
+                    <option value="6" selected>6 seconds</option>
+                    <option value="7">7 seconds</option>
+                    <option value="8">8 seconds</option>
+                </select>
             </div>
 
             <div style="margin-bottom: 2rem;">
@@ -1029,68 +1021,12 @@
             <h1>Video Concept</h1>
             <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Review and edit the AI-generated video concept.</p>
 
-            <!-- Image-to-Video Toggle -->
-            <div style="background: #F4F7FC; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <h3 style="color: #272D3F; margin: 0 0 0.5rem 0; font-size: 1.1rem;">Generation Mode</h3>
-                        <p style="color: #7DA3AF; font-size: 0.9rem; margin: 0;">Choose how to generate your video</p>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button id="textToVideoBtn" class="mode-toggle-btn active" onclick="setVideoMode('text')">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
-                            </svg>
-                            Text to Video
-                        </button>
-                        <button id="imageToVideoBtn" class="mode-toggle-btn" onclick="setVideoMode('image')">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                            Image to Video
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Image Upload for Image-to-Video -->
-                <div id="imageToVideoSection" class="hidden" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #E1E7EF;">
-                    <label style="display: block; margin-bottom: 0.5rem;">Source Image</label>
-                    <div class="image-upload-area" onclick="document.getElementById('videoSourceImage').click()" style="margin-bottom: 0;">
-                        <input type="file" id="videoSourceImage" accept="image/*" style="display: none;" onchange="handleVideoSourceImage(this)">
-                        <div id="videoSourceImagePreview" style="display: none;">
-                            <img id="videoSourceImageImg" src="" alt="Source" style="max-height: 200px; border-radius: 8px;">
-                            <p style="color: #31D7CA; font-size: 0.85rem; margin-top: 0.5rem;">Click to change image</p>
-                        </div>
-                        <div id="videoSourceImagePlaceholder">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#7DA3AF" stroke-width="1.5">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                            <p style="color: #7DA3AF; margin-top: 0.5rem;">Click to upload an image to animate</p>
-                            <p style="color: #A9C1CB; font-size: 0.85rem;">This image will be transformed into video</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div style="margin-bottom: 2rem;">
                 <label>Video Prompt</label>
                 <textarea id="videoPrompt" placeholder="AI-generated video prompt will appear here..."></textarea>
                 <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.5rem;">
                     Tip: Include motion descriptions like "camera slowly pans", "gentle zoom in", "subject turns slightly"
                 </p>
-            </div>
-
-            <div style="margin-bottom: 2rem;">
-                <label>Video Generator</label>
-                <select id="videoProvider">
-                    <option value="veo" selected>Google Veo 3.1 (Recommended)</option>
-                    <option value="runway">Runway (veo3.1 / gen4_turbo)</option>
-                    <option value="mock">Mock (No API)</option>
-                </select>
             </div>
 
             <div class="button-group">
@@ -1471,9 +1407,7 @@
         }
 
         // Duration selection
-        function selectDuration(duration, element) {
-            document.querySelectorAll('.duration-option').forEach(opt => opt.classList.remove('selected'));
-            element.classList.add('selected');
+        function selectDuration(duration) {
             selectedDuration = duration;
             console.log('[Duration] Selected:', selectedDuration, 'seconds');
         }

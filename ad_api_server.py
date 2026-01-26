@@ -10,9 +10,13 @@ import json
 import time
 import requests
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Google Auth for Vertex AI
+import google.auth
+from google.auth.transport.requests import Request as GoogleAuthRequest
 
 # Load environment variables
 load_dotenv()
@@ -21,9 +25,23 @@ load_dotenv()
 RUNWAY_API_KEY = os.getenv('RUNWAY_API_KEY')
 RUNWAY_API_BASE = 'https://api.dev.runwayml.com/v1'
 
-# Google Veo API configuration
-GOOGLE_VEO_API_KEY = os.getenv('GOOGLE_VEO_API_KEY')
-VEO_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+# Google Veo API configuration (Vertex AI)
+VEO_LOCATION = os.getenv('GOOGLE_CLOUD_REGION', 'us-central1')
+VEO_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT', 'britecreations')
+VEO_MODEL_ID = 'veo-3.1-generate-001'
+
+
+def get_veo_auth_token():
+    """Get OAuth2 access token for Vertex AI using Application Default Credentials"""
+    try:
+        scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+        creds, project = google.auth.default(scopes=scopes)
+        if not creds.valid:
+            creds.refresh(GoogleAuthRequest())
+        return creds.token
+    except Exception as e:
+        print(f"[VEO AUTH ERROR] Failed to get ADC token: {e}")
+        return None
 
 # Import from local integrations folder
 from integrations.openai_client import OpenAIClient
@@ -45,7 +63,7 @@ print("[OK] Claude initialized")
 # BriteCo brand guidelines
 BRAND_GUIDELINES = """
 BriteCo Brand Guidelines:
-- Colors: Turquoise (#31D7CA), Navy (#272D3F), Orange (#FC883A)
+- Colors: Turquoise, Navy, Orange (use these colors visually, NOT as text)
 - Style: Modern, clean, optimistic, trustworthy
 - Target: Millennials and Gen Z engaged couples
 - Photography: Warm lighting, diverse couples, genuine moments
@@ -60,6 +78,14 @@ Requirements for ads:
 - Professional photography quality
 - Authentic, candid moment (not too posed)
 - Diverse representation
+
+CRITICAL: NEVER write, render, display, or include ANY text on the image including:
+- Color codes (like #31D7CA, #272D3F, #FC883A)
+- Hex values or RGB values
+- Color names as visible text
+- Any watermarks, labels, or text overlays
+- Brand names or logos
+Colors should ONLY be used visually in the image composition, never as readable text.
 """
 
 # Platform specifications
@@ -136,21 +162,115 @@ def serve_root_file(filename):
         return send_from_directory('.', filename)
     return "Not found", 404
 
+@app.route('/api/analyze-inspiration-images', methods=['POST'])
+def analyze_inspiration_images():
+    """Analyze inspiration images using Gemini Vision and return style descriptions"""
+    try:
+        data = request.json
+        images = data.get('images', [])  # Array of base64 image data URIs
+
+        print(f"\n[API] ========== INSPIRATION IMAGE ANALYSIS ==========")
+        print(f"[API] Number of images received: {len(images)}")
+
+        if not images:
+            print(f"[API] WARNING: No images in request!")
+            return jsonify({'success': True, 'analysis': ''})
+
+        # Log info about each image
+        for i, img in enumerate(images):
+            if img:
+                print(f"[API] Image {i+1}: data length = {len(img)}, starts with = {img[:50]}...")
+            else:
+                print(f"[API] Image {i+1}: EMPTY/NULL")
+
+        # Use Gemini to analyze the images with structured creative brief format
+        analysis_prompt = """Analyze this inspiration image and create a detailed creative brief for AI image generation.
+
+Describe the following elements in detail:
+
+**SUBJECT MATTER**: What is depicted in this image? Describe the main subjects, objects, characters, animals, or scenes shown. Be specific about what you actually see.
+
+**COMPOSITION**: How is the image framed? Describe the layout, perspective, use of negative space, focal points, and visual hierarchy.
+
+**STYLE CUES**: Is this photographic or illustrative? What era or aesthetic does it reference? Describe textures, rendering style, and artistic approach.
+
+**COLOR PALETTE**: List the dominant colors (3-7 key colors). Describe the overall color mood (warm, cool, muted, vibrant, etc.).
+
+**LIGHTING**: Describe the lighting quality - soft or hard, direction, mood it creates, shadows and highlights.
+
+**MOOD/ATMOSPHERE**: What emotional tone does this image convey? What feelings does it evoke?
+
+**TRANSFERABLE ATTRIBUTES**: List specific visual elements that can be safely incorporated into new images (poses, compositions, color schemes, lighting setups, etc.).
+
+**PROMPT SNIPPETS**: Provide 3-5 short descriptive phrases that capture the essence of this image and could be directly used in an image generation prompt.
+
+Be specific and detailed. Focus on what you actually see in the image - if it's a bear, describe the bear. If it's a landscape, describe the landscape. Your description will be used to guide AI image generation."""
+
+        # Call Gemini with vision capability
+        result = gemini_client.analyze_images(
+            images=images,
+            prompt=analysis_prompt,
+            max_tokens=2000,
+            temperature=0.3
+        )
+
+        analysis = result.get('content', '')
+        print(f"[API] Image analysis complete ({len(analysis)} chars)")
+
+        return jsonify({
+            'success': True,
+            'analysis': analysis
+        })
+
+    except Exception as e:
+        print(f"[API ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/generate-prompt', methods=['POST'])
 def generate_prompt():
-    """Generate image prompt using Claude or OpenAI"""
+    """Generate image prompt using Claude, OpenAI, or Gemini"""
     try:
         data = request.json
         campaign_text = data.get('campaignText', '')
         platforms = data.get('platforms', [])
-        provider = data.get('provider', 'claude')
+        provider = data.get('provider', 'claude') or 'claude'  # Fallback if empty string
+        inspiration_analysis = data.get('inspirationAnalysis', '')  # Style analysis from inspiration images
 
-        print(f"\n[API] Generate Prompt Request")
-        print(f"  Provider: {provider}")
-        print(f"  Platforms: {platforms}")
+        print(f"\n[API] ========== GENERATE PROMPT REQUEST ==========")
+        print(f"[API] Provider: {provider}")
+        print(f"[API] Platforms: {platforms}")
+        print(f"[API] Campaign text length: {len(campaign_text)}")
+        print(f"[API] Has inspiration analysis: {bool(inspiration_analysis)}")
+        if inspiration_analysis:
+            print(f"[API] Inspiration analysis length: {len(inspiration_analysis)}")
+            print(f"[API] Inspiration analysis preview: {inspiration_analysis[:200]}...")
+        else:
+            print(f"[API] WARNING: No inspiration analysis received!")
 
         # Check if Google Ads platforms are selected
         is_google_ads = any(p.lower() in ['demandgen', 'pmax'] for p in platforms)
+
+        # Build inspiration context if available
+        inspiration_context = ""
+        if inspiration_analysis:
+            inspiration_context = f"""
+=== CRITICAL: INSPIRATION IMAGE ANALYSIS (HIGHEST PRIORITY) ===
+The user uploaded an inspiration image. Here is the detailed analysis:
+
+{inspiration_analysis}
+
+=== MANDATORY REQUIREMENTS ===
+1. Your generated prompt MUST incorporate the SUBJECT MATTER from the inspiration (if it shows a bear, your prompt must include a bear; if it shows a landscape, include that landscape, etc.)
+2. Use the STYLE CUES, COLOR PALETTE, and LIGHTING described above
+3. Incorporate the PROMPT SNIPPETS provided
+4. Match the MOOD/ATMOSPHERE of the inspiration
+5. The inspiration image takes PRIORITY over default BriteCo brand imagery - adapt the brand message to work WITH the inspiration, not against it
+
+DO NOT ignore the inspiration image. DO NOT default to generic "happy couple with ring" if the inspiration shows something different.
+"""
 
         # Build platform-specific context
         if is_google_ads:
@@ -159,7 +279,7 @@ def generate_prompt():
 Create an image generation prompt for BriteCo jewelry insurance ads for {', '.join(platforms)}.
 
 Campaign context: {campaign_text}
-
+{inspiration_context}
 {BRAND_GUIDELINES}
 
 {GOOGLE_ADS_BEST_PRACTICES}
@@ -172,6 +292,8 @@ IMPORTANT FOR GOOGLE ADS:
 - Ensure the imagery works well at smaller mobile sizes
 - Use clear visual hierarchy with one strong focal point
 
+NEVER include hex color codes like #31D7CA in your prompt - just describe the colors by name (turquoise, navy, orange).
+
 Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google Gemini) image generator. Make it specific, visual, and actionable."""
         else:
             platform_context = f"""You are an expert at creating image generation prompts for AI models.
@@ -179,8 +301,10 @@ Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google G
 Create an image generation prompt for BriteCo jewelry insurance ads for {', '.join(platforms)}.
 
 Campaign context: {campaign_text}
-
+{inspiration_context}
 {BRAND_GUIDELINES}
+
+NEVER include hex color codes like #31D7CA in your prompt - just describe the colors by name (turquoise, navy, orange).
 
 Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google Gemini) image generator. Make it specific, visual, and actionable."""
 
@@ -190,6 +314,14 @@ Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google G
         if provider == 'claude':
             print("[API] Using Claude...")
             result = claude_client.generate_content(
+                prompt=prompt_context,
+                max_tokens=500,
+                temperature=0.7
+            )
+            prompt = result.get('content', '')
+        elif provider == 'gemini':
+            print("[API] Using Gemini...")
+            result = gemini_client.generate_content(
                 prompt=prompt_context,
                 max_tokens=500,
                 temperature=0.7
@@ -754,9 +886,11 @@ def generate_video():
 
 
 def generate_video_veo(prompt_text, prompt_image, duration, aspect_ratio):
-    """Generate video using Google Veo 3.1 API"""
-    if not GOOGLE_VEO_API_KEY:
-        return jsonify({'success': False, 'error': 'Google Veo API key not configured'}), 500
+    """Generate video using Google Veo 3.1 API via Vertex AI"""
+    # Get OAuth2 token using ADC
+    token = get_veo_auth_token()
+    if not token:
+        return jsonify({'success': False, 'error': 'Failed to authenticate with Google Cloud. Check service account permissions.'}), 500
 
     # Convert aspect ratio format (720:1280 -> 9:16)
     ratio_map = {
@@ -767,31 +901,38 @@ def generate_video_veo(prompt_text, prompt_image, duration, aspect_ratio):
     }
     veo_aspect_ratio = ratio_map.get(aspect_ratio, '9:16')
 
-    # Ensure duration is valid integer (4, 6, or 8)
-    valid_durations = [4, 6, 8]
-    if duration not in valid_durations:
-        duration = 8  # Default to 8 if invalid
+    # Ensure duration is valid integer (5-8 for Veo 3.1)
+    if duration < 5:
+        duration = 5
+    elif duration > 8:
+        duration = 8
 
-    # Veo API endpoint
-    model = 'veo-3.1-generate-preview'
-    endpoint = f'{VEO_API_BASE}/models/{model}:predictLongRunning'
+    # Vertex AI endpoint for Veo
+    api_endpoint = f"https://{VEO_LOCATION}-aiplatform.googleapis.com"
+    endpoint = f"{api_endpoint}/v1/projects/{VEO_PROJECT}/locations/{VEO_LOCATION}/publishers/google/models/{VEO_MODEL_ID}:predictLongRunning"
 
     headers = {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GOOGLE_VEO_API_KEY
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
     }
 
-    # Build payload for Veo API
-    # IMPORTANT: durationSeconds must be an integer, not a string
+    # Build payload for Vertex AI Veo API
+    # Note: durationSeconds must be a string for Vertex AI
     payload = {
+        'endpoint': f"projects/{VEO_PROJECT}/locations/{VEO_LOCATION}/publishers/google/models/{VEO_MODEL_ID}",
         'instances': [{
             'prompt': prompt_text
         }],
         'parameters': {
             'aspectRatio': veo_aspect_ratio,
-            'durationSeconds': duration,  # Integer, not string!
+            'durationSeconds': str(duration),
             'resolution': '720p',
-            'sampleCount': 1
+            'sampleCount': 1,
+            'personGeneration': 'allow_adult',
+            'addWatermark': True,
+            'includeRaiReason': True,
+            'generateAudio': True,
+            'enhancePrompt': True
         }
     }
 
@@ -799,9 +940,7 @@ def generate_video_veo(prompt_text, prompt_image, duration, aspect_ratio):
     if prompt_image:
         # Extract base64 data and determine mime type
         if ',' in prompt_image:
-            # Data URI format: data:image/jpeg;base64,xxxxx
             header, base64_data = prompt_image.split(',', 1)
-            # Extract mime type from header
             if 'png' in header.lower():
                 mime_type = 'image/png'
             elif 'gif' in header.lower():
@@ -812,17 +951,17 @@ def generate_video_veo(prompt_text, prompt_image, duration, aspect_ratio):
             base64_data = prompt_image
             mime_type = 'image/jpeg'
 
-        # Veo 3.1 image-to-video format
         payload['instances'][0]['image'] = {
             'bytesBase64Encoded': base64_data,
             'mimeType': mime_type
         }
 
-    print(f"[API] Calling Google Veo API: {endpoint}")
-    print(f"[API] Payload: {json.dumps({**payload, 'instances': [{'prompt': prompt_text[:50] + '...'}]}, indent=2)}")
+    print(f"[API] Calling Google Veo API (Vertex AI): {endpoint}")
+    print(f"[API] Project: {VEO_PROJECT}, Location: {VEO_LOCATION}, Model: {VEO_MODEL_ID}")
+    print(f"[API] Duration: {duration}s, Aspect Ratio: {veo_aspect_ratio}")
 
     # Create the task
-    response = requests.post(endpoint, headers=headers, json=payload)
+    response = requests.post(endpoint, headers=headers, json=payload, timeout=120)
 
     print(f"[API] Veo Response Status: {response.status_code}")
 
@@ -832,7 +971,6 @@ def generate_video_veo(prompt_text, prompt_image, duration, aspect_ratio):
         return jsonify({'success': False, 'error': f'Veo API error: {error_msg}'}), 500
 
     task_data = response.json()
-    # Veo returns operation name like "operations/xxx"
     operation_name = task_data.get('name', '')
 
     print(f"[API] Veo Task created: {operation_name}")
@@ -919,24 +1057,33 @@ def get_video_status(task_id):
 
 
 def get_veo_status(operation_name):
-    """Check status of a Google Veo video generation task"""
-    if not GOOGLE_VEO_API_KEY:
-        return jsonify({'success': False, 'error': 'Google Veo API key not configured'}), 500
+    """Check status of a Google Veo video generation task via Vertex AI"""
+    # Get OAuth2 token using ADC
+    token = get_veo_auth_token()
+    if not token:
+        return jsonify({'success': False, 'error': 'Failed to authenticate with Google Cloud'}), 500
 
-    # Poll the operation status
-    endpoint = f'{VEO_API_BASE}/{operation_name}'
+    # Vertex AI polling endpoint
+    api_endpoint = f"https://{VEO_LOCATION}-aiplatform.googleapis.com"
+    endpoint = f"{api_endpoint}/v1/projects/{VEO_PROJECT}/locations/{VEO_LOCATION}/publishers/google/models/{VEO_MODEL_ID}:fetchPredictOperation"
 
     headers = {
-        'x-goog-api-key': GOOGLE_VEO_API_KEY
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
     }
 
-    response = requests.get(endpoint, headers=headers)
+    payload = {
+        'operationName': operation_name
+    }
+
+    response = requests.post(endpoint, headers=headers, json=payload, timeout=120)
 
     if response.status_code != 200:
         return jsonify({'success': False, 'error': f'Failed to get Veo task status: {response.text}'}), 500
 
     task_data = response.json()
     done = task_data.get('done', False)
+    status = task_data.get('status') or (task_data.get('response', {}).get('status')) or (task_data.get('metadata', {}).get('status'))
 
     result = {
         'success': True,
@@ -944,7 +1091,7 @@ def get_veo_status(operation_name):
         'provider': 'veo'
     }
 
-    if done:
+    if done or status in ('SUCCEEDED', 'COMPLETED', 'FINISHED'):
         # Check for error
         if 'error' in task_data:
             result['status'] = 'FAILED'
@@ -954,69 +1101,91 @@ def get_veo_status(operation_name):
             result['status'] = 'SUCCEEDED'
             # Extract video URL from response
             response_data = task_data.get('response', {})
-            generated_samples = response_data.get('generateVideoResponse', {}).get('generatedSamples', [])
-            if generated_samples:
-                video_uri = generated_samples[0].get('video', {}).get('uri', '')
-                # The Veo URL requires auth, so we proxy it through our server
-                # Extract the file ID from the URI and create a proxy URL
-                if 'files/' in video_uri:
-                    file_id = video_uri.split('files/')[1].split(':')[0]
-                    result['video_url'] = f'/api/veo-video/{file_id}'
+
+            # Try multiple paths to find the video
+            videos = response_data.get('videos') or response_data.get('predictions') or []
+            video_uri = None
+            video_b64 = None
+
+            if videos:
+                v0 = videos[0]
+                # Check for base64 data
+                video_b64 = v0.get('bytesBase64Encoded') or (v0.get('inlineData', {}) or {}).get('data')
+                # Check for URI
+                for key in ('uri', 'videoUri', 'signedUri', 'downloadUri', 'fileUri', 'gcsUri'):
+                    u = v0.get(key)
+                    if isinstance(u, str) and u:
+                        video_uri = u
+                        break
+
+            if video_b64:
+                # Return as data URI
+                result['video_url'] = f'data:video/mp4;base64,{video_b64}'
+            elif video_uri:
+                if video_uri.startswith('gs://'):
+                    # GCS URI - need to proxy through our server
+                    # Extract bucket and path
+                    gcs_path = video_uri[5:]  # Remove gs://
+                    result['video_url'] = f'/api/veo-video-gcs/{gcs_path}'
                     result['original_url'] = video_uri
+                elif video_uri.startswith('http'):
+                    # Direct HTTP URL (signed URL)
+                    result['video_url'] = video_uri
                 else:
                     result['video_url'] = video_uri
-            print(f"[API] Veo video generation complete: {result.get('video_url', 'no URL')}")
+
+            print(f"[API] Veo video generation complete: {result.get('video_url', 'no URL')[:100]}...")
+    elif status in ('FAILED', 'ERROR'):
+        result['status'] = 'FAILED'
+        result['error'] = task_data.get('error', {}).get('message', 'Video generation failed')
+        print(f"[API] Veo video generation failed: {result['error']}")
     else:
         result['status'] = 'RUNNING'
-        # Veo doesn't provide progress percentage, estimate based on time
-        metadata = task_data.get('metadata', {})
         result['progress'] = 50  # Placeholder
-        print(f"[API] Veo video generation in progress...")
+        if status:
+            print(f"[API] Veo video generation status: {status}")
+        else:
+            print(f"[API] Veo video generation in progress...")
 
     return jsonify(result)
 
 
-@app.route('/api/veo-video/<file_id>')
-def proxy_veo_video(file_id):
-    """Proxy endpoint to serve Veo-generated videos (requires API key auth)"""
+@app.route('/api/veo-video-gcs/<path:gcs_path>')
+def proxy_veo_video_gcs(gcs_path):
+    """Proxy endpoint to serve Veo-generated videos from GCS"""
     try:
-        if not GOOGLE_VEO_API_KEY:
-            return jsonify({'success': False, 'error': 'Google Veo API key not configured'}), 500
+        from google.cloud import storage
 
-        # Build the download URL
-        download_url = f'{VEO_API_BASE}/files/{file_id}:download?alt=media'
+        # Parse bucket and blob path
+        parts = gcs_path.split('/', 1)
+        if len(parts) != 2:
+            return jsonify({'success': False, 'error': 'Invalid GCS path'}), 400
 
-        headers = {
-            'x-goog-api-key': GOOGLE_VEO_API_KEY
-        }
+        bucket_name, blob_path = parts
 
-        print(f"[API] Proxying Veo video: {download_url}")
+        print(f"[API] Proxying GCS video: gs://{bucket_name}/{blob_path}")
 
-        # Stream the video from Google
-        response = requests.get(download_url, headers=headers, stream=True)
+        # Download from GCS
+        storage_client = storage.Client(project=VEO_PROJECT)
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
 
-        if response.status_code != 200:
-            print(f"[API ERROR] Failed to download Veo video: {response.status_code} - {response.text[:200]}")
-            return jsonify({'success': False, 'error': f'Failed to download video: {response.status_code}'}), 500
+        # Download to memory
+        video_bytes = blob.download_as_bytes()
 
-        # Get content type from response
-        content_type = response.headers.get('Content-Type', 'video/mp4')
+        print(f"[API] Downloaded {len(video_bytes)} bytes from GCS")
 
-        print(f"[API] Streaming Veo video, Content-Type: {content_type}")
-
-        # Stream the response to the client
-        from flask import Response
         return Response(
-            response.iter_content(chunk_size=8192),
-            content_type=content_type,
+            video_bytes,
+            content_type='video/mp4',
             headers={
-                'Content-Disposition': f'inline; filename="veo_video_{file_id}.mp4"',
+                'Content-Disposition': f'inline; filename="veo_video.mp4"',
                 'Cache-Control': 'public, max-age=3600'
             }
         )
 
     except Exception as e:
-        print(f"[API ERROR] Veo video proxy error: {str(e)}")
+        print(f"[API ERROR] GCS video proxy error: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1171,7 +1340,8 @@ if __name__ == '__main__':
     print(f"  [OK] Claude (claude-sonnet-4-5-20250929)")
     print(f"  [OK] OpenAI (gpt-4o)")
     print(f"  [OK] Google Gemini (gemini-2.5-flash-image / Nano Banana)")
-    print(f"  [OK] Google Veo 3.1 (video generation - DEFAULT)" if GOOGLE_VEO_API_KEY else "  [--] Google Veo (not configured)")
+    print(f"  [OK] Google Veo 3.1 (Vertex AI - uses ADC auth)")
+    print(f"       Project: {VEO_PROJECT}, Location: {VEO_LOCATION}")
     print(f"  [OK] Runway (video generation - fallback)" if RUNWAY_API_KEY else "  [--] Runway (not configured)")
     print(f"\nPress Ctrl+C to stop")
     print("=" * 80)

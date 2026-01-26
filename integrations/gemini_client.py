@@ -149,6 +149,205 @@ class GeminiClient:
             traceback.print_exc()
             raise
 
+    def generate_content(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        model: Optional[str] = None,
+        max_tokens: int = 2000,
+        temperature: float = 0.7
+    ) -> Dict:
+        """
+        Generate text content using Gemini
+
+        Args:
+            prompt: User prompt
+            system_prompt: System instructions (will be prepended to prompt)
+            model: Model to use (default: gemini-3-pro-preview)
+            max_tokens: Maximum output tokens
+            temperature: Creativity setting
+
+        Returns:
+            {
+                "content": "generated text",
+                "model": "model-used"
+            }
+        """
+        try:
+            text_model = model or "gemini-3-pro-preview"
+            start_time = time.time()
+
+            # Combine system prompt and user prompt
+            full_prompt = prompt
+            if system_prompt:
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+
+            print(f"[GEMINI TEXT] Using model: {text_model}")
+            print(f"[GEMINI TEXT] Prompt length: {len(full_prompt)} chars")
+
+            response = self.client.models.generate_content(
+                model=text_model,
+                contents=[full_prompt],
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_tokens
+                )
+            )
+
+            generation_time_ms = int((time.time() - start_time) * 1000)
+
+            # Extract text from response
+            content = ""
+            if hasattr(response, 'text') and response.text:
+                content = response.text
+            elif hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and candidate.content:
+                    if hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                content += part.text
+
+            print(f"[GEMINI TEXT] Generated {len(content)} chars in {generation_time_ms}ms")
+
+            return {
+                "content": content,
+                "model": text_model,
+                "generation_time_ms": generation_time_ms
+            }
+
+        except Exception as e:
+            print(f"[GEMINI TEXT ERROR] Content generation failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    def analyze_images(
+        self,
+        images: list,
+        prompt: str,
+        max_tokens: int = 2000,
+        temperature: float = 0.3
+    ) -> Dict:
+        """
+        Analyze images using Gemini Vision
+
+        Args:
+            images: List of base64 image data URIs (data:image/jpeg;base64,...)
+            prompt: Analysis prompt
+            max_tokens: Maximum output tokens
+            temperature: Creativity setting
+
+        Returns:
+            {
+                "content": "analysis text",
+                "model": "model-used"
+            }
+        """
+        try:
+            from PIL import Image
+            from io import BytesIO
+
+            print(f"[GEMINI VISION] Analyzing {len(images)} images")
+
+            # Build content parts with images and prompt
+            content_parts = []
+
+            for i, img_data in enumerate(images):
+                try:
+                    # Extract base64 data from data URI
+                    if ',' in img_data:
+                        header = img_data.split(',', 1)[0]
+                        base64_data = img_data.split(',', 1)[1]
+                        # Determine mime type from header
+                        if 'png' in header.lower():
+                            mime_type = 'image/png'
+                        elif 'gif' in header.lower():
+                            mime_type = 'image/gif'
+                        elif 'webp' in header.lower():
+                            mime_type = 'image/webp'
+                        else:
+                            mime_type = 'image/jpeg'
+                    else:
+                        base64_data = img_data
+                        mime_type = 'image/jpeg'
+
+                    # Decode base64 to get image bytes
+                    image_bytes = base64.b64decode(base64_data)
+
+                    # Verify it's a valid image by opening with PIL
+                    pil_image = Image.open(BytesIO(image_bytes))
+                    print(f"[GEMINI VISION] Image {i+1}: {pil_image.size}, mode: {pil_image.mode}")
+
+                    # Use types.Part with inline_data for proper SDK format
+                    image_part = types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type=mime_type
+                    )
+                    content_parts.append(image_part)
+
+                except Exception as img_error:
+                    print(f"[GEMINI VISION] Failed to process image {i+1}: {img_error}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+
+            # Add the text prompt
+            content_parts.append(prompt)
+
+            if len(content_parts) < 2:
+                raise ValueError("No valid images to analyze")
+
+            # Use Gemini 3 Pro Preview for vision analysis
+            vision_model = "gemini-3-pro-preview"
+            print(f"[GEMINI VISION] Using model: {vision_model}")
+
+            response = self.client.models.generate_content(
+                model=vision_model,
+                contents=content_parts,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_tokens
+                )
+            )
+
+            # Extract text response with robust null checking
+            analysis_text = ""
+            print(f"[GEMINI VISION DEBUG] Response type: {type(response)}")
+
+            # Try direct text attribute first
+            if hasattr(response, 'text') and response.text:
+                analysis_text = response.text
+                print(f"[GEMINI VISION DEBUG] Got text directly from response.text")
+            # Then try candidates path with careful null checking
+            elif hasattr(response, 'candidates') and response.candidates is not None and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+
+                if hasattr(candidate, 'content') and candidate.content is not None:
+                    content = candidate.content
+                    if hasattr(content, 'parts') and content.parts is not None:
+                        for part in content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                analysis_text += part.text
+
+            print(f"[GEMINI VISION] Analysis complete: {len(analysis_text)} chars")
+
+            # Return result even if empty (let caller handle it)
+            if not analysis_text:
+                print(f"[GEMINI VISION WARNING] No analysis text extracted from response")
+                analysis_text = "Image analyzed but no description was generated."
+
+            return {
+                "content": analysis_text,
+                "model": vision_model
+            }
+
+        except Exception as e:
+            print(f"[GEMINI VISION ERROR] Image analysis failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
+
     def search_web(self, query: str, max_results: int = 5) -> list:
         """
         Search web using Gemini with Google Search grounding
