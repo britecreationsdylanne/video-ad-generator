@@ -1027,34 +1027,19 @@
 
             <div style="margin-bottom: 2rem;">
                 <label>Motion Style</label>
-                <div class="motion-grid">
-                    <div class="motion-option selected" onclick="selectMotion('smooth', this)">
-                        <div class="icon">🎬</div>
-                        <div class="name">Smooth Pan</div>
-                    </div>
-                    <div class="motion-option" onclick="selectMotion('zoom', this)">
-                        <div class="icon">🔍</div>
-                        <div class="name">Slow Zoom</div>
-                    </div>
-                    <div class="motion-option" onclick="selectMotion('dynamic', this)">
-                        <div class="icon">⚡</div>
-                        <div class="name">Dynamic</div>
-                    </div>
-                </div>
+                <select id="motionSelect" onchange="selectMotionDropdown(this.value)" style="width: 100%; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer; margin-top: 0.5rem;">
+                    <option value="smooth" selected>Smooth Pan</option>
+                    <option value="zoom">Slow Zoom</option>
+                    <option value="dynamic">Dynamic</option>
+                </select>
             </div>
 
             <div style="margin-bottom: 2rem;">
                 <label>AI Provider for Prompt Generation</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
-                    <div class="platform-card selected" id="aiProviderClaude" onclick="selectAIProvider('claude', this)" style="padding: 1.25rem;">
-                        <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">Claude</h3>
-                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0;">Anthropic Claude (Recommended)</p>
-                    </div>
-                    <div class="platform-card" id="aiProviderOpenai" onclick="selectAIProvider('openai', this)" style="padding: 1.25rem;">
-                        <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">ChatGPT</h3>
-                        <p style="color: #7DA3AF; font-size: 0.85rem; margin: 0;">OpenAI GPT-4o</p>
-                    </div>
-                </div>
+                <select id="aiProviderSelect" onchange="selectAIProviderDropdown(this.value)" style="width: 100%; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer; margin-top: 0.5rem;">
+                    <option value="claude" selected>Claude (Anthropic) - Recommended</option>
+                    <option value="openai">ChatGPT (OpenAI GPT-4o)</option>
+                </select>
             </div>
 
             <div class="button-group">
@@ -1376,7 +1361,6 @@
 
     <footer>
         <p>&copy; 2026 BriteCo. Internal use only.</p>
-        <p style="margin-top: 0.5rem;">Powered by Claude AI & Runway/Veo</p>
     </footer>
 
     <script>
@@ -1476,6 +1460,17 @@
             selectedAIProvider = provider;
             document.getElementById('aiProviderClaude').classList.toggle('selected', provider === 'claude');
             document.getElementById('aiProviderOpenai').classList.toggle('selected', provider === 'openai');
+        }
+
+        // Dropdown handlers for Motion Style and AI Provider
+        function selectMotionDropdown(motion) {
+            selectedMotion = motion;
+            console.log('[Motion] Selected:', selectedMotion);
+        }
+
+        function selectAIProviderDropdown(provider) {
+            selectedAIProvider = provider;
+            console.log('[AI Provider] Selected:', selectedAIProvider);
         }
 
         // Video mode toggle (text-to-video vs image-to-video)
@@ -2926,6 +2921,10 @@
 
         function updateSpeed(value) {
             document.getElementById('speedDisplay').textContent = value + 'x';
+            const video = document.getElementById('videoPlayer');
+            if (video) {
+                video.playbackRate = parseFloat(value);
+            }
         }
 
         // Text overlay
