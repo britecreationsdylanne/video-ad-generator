@@ -1344,12 +1344,13 @@ def generate_video_sync():
 
 @app.route('/api/trim-video', methods=['POST'])
 def trim_video():
-    """Trim video to specified start/end times and convert to MP4"""
+    """Trim video to specified start/end times, apply speed, and convert to MP4"""
     try:
         data = request.json
         video_url = data.get('video_url')
         start_time = float(data.get('start', 0))
         end_time = float(data.get('end'))
+        speed = float(data.get('speed', 1.0))
 
         if not video_url:
             return jsonify({'success': False, 'error': 'No video URL provided'}), 400
@@ -1357,8 +1358,12 @@ def trim_video():
         if not end_time or end_time <= start_time:
             return jsonify({'success': False, 'error': 'Invalid trim times'}), 400
 
+        # Clamp speed to reasonable range
+        speed = max(0.5, min(4.0, speed))
+
         duration = end_time - start_time
-        print(f"[API] Trim video request: {start_time}s to {end_time}s ({duration}s)")
+        final_duration = duration / speed  # Actual duration after speed change
+        print(f"[API] Trim video request: {start_time}s to {end_time}s ({duration}s) at {speed}x speed -> {final_duration:.2f}s final")
 
         # Create temp files
         with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as input_file:
@@ -1393,20 +1398,48 @@ def trim_video():
 
             print(f"[API] Video ready, trimming with FFmpeg...")
 
-            # Use FFmpeg to trim and convert to MP4
-            cmd = [
-                'ffmpeg', '-y',
-                '-ss', str(start_time),
-                '-i', input_path,
-                '-t', str(duration),
-                '-c:v', 'libx264',
-                '-preset', 'fast',
-                '-crf', '23',
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-movflags', '+faststart',
-                output_path
-            ]
+            # Build FFmpeg command with optional speed adjustment
+            if speed != 1.0:
+                # Apply speed change: setpts for video, atempo for audio
+                # setpts=PTS/speed speeds up (2x = PTS/2), slows down (0.5x = PTS/0.5)
+                video_filter = f"setpts=PTS/{speed}"
+                # atempo only supports 0.5-2.0, chain for higher speeds
+                if speed <= 2.0:
+                    audio_filter = f"atempo={speed}"
+                else:
+                    # Chain atempo filters for speeds > 2x (e.g., 4x = atempo=2,atempo=2)
+                    audio_filter = f"atempo=2,atempo={speed/2}"
+
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_time),
+                    '-i', input_path,
+                    '-t', str(duration),
+                    '-vf', video_filter,
+                    '-af', audio_filter,
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    output_path
+                ]
+            else:
+                # No speed change, just trim
+                cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', str(start_time),
+                    '-i', input_path,
+                    '-t', str(duration),
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    output_path
+                ]
 
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
@@ -1425,8 +1458,10 @@ def trim_video():
             return jsonify({
                 'success': True,
                 'video_data': video_base64,
-                'filename': f'trimmed_video_{start_time:.1f}s-{end_time:.1f}s.mp4',
-                'duration': duration
+                'filename': f'trimmed_video_{start_time:.1f}s-{end_time:.1f}s_{speed}x.mp4',
+                'duration': final_duration,
+                'original_duration': duration,
+                'speed': speed
             })
 
         finally:

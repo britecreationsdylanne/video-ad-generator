@@ -1132,10 +1132,10 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                                <button onclick="applyTrim()" style="flex: 1; background: #31D7CA; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply Trim</button>
-                                <button onclick="saveTrimmedVideo()" style="flex: 1; background: #FC883A; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Save Video</button>
+                                <button onclick="applyTrim()" style="flex: 1; background: #31D7CA; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply Changes</button>
+                                <button onclick="saveTrimmedVideo()" style="flex: 1; background: #FC883A; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply & Download</button>
                             </div>
-                            <p style="font-size: 0.75rem; color: #7DA3AF; margin-top: 0.5rem;">Set start/end times, then click Save to download the trimmed video.</p>
+                            <p style="font-size: 0.75rem; color: #7DA3AF; margin-top: 0.5rem;">Trim & speed are baked into video. "Apply Changes" updates editor. "Apply & Download" also saves MP4.</p>
                         </div>
                     </div>
                 </div>
@@ -2967,31 +2967,82 @@
             document.getElementById('trimEnd').addEventListener('input', updateTrimDuration);
         }
 
-        function applyTrim() {
+        async function applyTrim() {
             const video = document.getElementById('videoPlayer');
-            if (!video) return;
+            if (!video || !video.src) {
+                alert('No video loaded');
+                return;
+            }
 
             const start = parseFloat(document.getElementById('trimStart').value) || 0;
             const end = parseFloat(document.getElementById('trimEnd').value) || video.duration;
+            const speed = parseFloat(document.getElementById('speedSlider').value) || 1.0;
 
             if (start >= end) {
                 alert('Start time must be less than end time');
                 return;
             }
 
-            trimSettings.start = start;
-            trimSettings.end = end;
-            trimSettings.applied = true;
+            // Show processing
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Processing...';
+            btn.disabled = true;
 
-            // Set video to start position
-            video.currentTime = start;
+            try {
+                console.log('[Trim] Applying trim + speed:', start, 'to', end, 'at', speed + 'x');
 
-            // Add timeupdate listener to stop at end point
-            video.removeEventListener('timeupdate', checkTrimEnd);
-            video.addEventListener('timeupdate', checkTrimEnd);
+                const response = await fetch('/api/trim-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_url: video.src,
+                        start: start,
+                        end: end,
+                        speed: speed
+                    })
+                });
 
-            alert(`Trim applied: ${start.toFixed(1)}s to ${end.toFixed(1)}s (${(end - start).toFixed(1)}s duration)\n\nVideo will now loop within this range.`);
-            console.log('[Trim] Applied:', start, 'to', end);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to process video');
+                }
+
+                // Create data URL from base64
+                const newVideoUrl = 'data:video/mp4;base64,' + result.video_data;
+
+                // Update video in editor
+                video.src = newVideoUrl;
+                videoData.url = newVideoUrl;
+
+                // Reset trim controls for new video
+                video.onloadedmetadata = () => {
+                    document.getElementById('trimEnd').value = video.duration.toFixed(1);
+                    document.getElementById('trimEnd').max = video.duration;
+                    document.getElementById('trimStart').max = video.duration;
+                    document.getElementById('trimStart').value = 0;
+                    document.getElementById('speedSlider').value = 1;
+                    document.getElementById('speedDisplay').textContent = '1.0x';
+                    video.playbackRate = 1.0;
+                    updateTrimDuration();
+                };
+
+                trimSettings.start = 0;
+                trimSettings.end = result.duration;
+                trimSettings.applied = false;
+
+                const finalDuration = result.duration.toFixed(1);
+                alert(`Video processed! New duration: ${finalDuration}s\n\nSpeed and trim have been applied. This version will be used for thumbnails and export.`);
+                console.log('[Trim] Video updated, new duration:', result.duration);
+
+            } catch (error) {
+                console.error('Error processing video:', error);
+                alert('Error processing video: ' + error.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
         }
 
         function checkTrimEnd() {
@@ -3015,6 +3066,7 @@
 
             const start = parseFloat(document.getElementById('trimStart').value) || 0;
             const end = parseFloat(document.getElementById('trimEnd').value) || video.duration;
+            const speed = parseFloat(document.getElementById('speedSlider').value) || 1.0;
             const duration = end - start;
 
             if (duration <= 0) {
@@ -3028,7 +3080,7 @@
             originalBtn.disabled = true;
 
             try {
-                console.log('[Trim] Sending to server:', video.src.substring(0, 100), start, end);
+                console.log('[Trim] Sending to server:', video.src.substring(0, 100), start, end, 'speed:', speed);
 
                 const response = await fetch('/api/trim-video', {
                     method: 'POST',
@@ -3036,7 +3088,8 @@
                     body: JSON.stringify({
                         video_url: video.src,
                         start: start,
-                        end: end
+                        end: end,
+                        speed: speed
                     })
                 });
 
@@ -3046,22 +3099,39 @@
                     throw new Error(result.error || 'Failed to trim video');
                 }
 
-                // Download the MP4
-                const videoData = atob(result.video_data);
-                const videoArray = new Uint8Array(videoData.length);
-                for (let i = 0; i < videoData.length; i++) {
-                    videoArray[i] = videoData.charCodeAt(i);
+                // Create data URL and update video in editor
+                const newVideoUrl = 'data:video/mp4;base64,' + result.video_data;
+                video.src = newVideoUrl;
+                videoData.url = newVideoUrl;
+
+                // Reset controls for new video
+                video.onloadedmetadata = () => {
+                    document.getElementById('trimEnd').value = video.duration.toFixed(1);
+                    document.getElementById('trimEnd').max = video.duration;
+                    document.getElementById('trimStart').max = video.duration;
+                    document.getElementById('trimStart').value = 0;
+                    document.getElementById('speedSlider').value = 1;
+                    document.getElementById('speedDisplay').textContent = '1.0x';
+                    video.playbackRate = 1.0;
+                    updateTrimDuration();
+                };
+
+                // Also download the MP4
+                const videoBytes = atob(result.video_data);
+                const videoArray = new Uint8Array(videoBytes.length);
+                for (let i = 0; i < videoBytes.length; i++) {
+                    videoArray[i] = videoBytes.charCodeAt(i);
                 }
                 const blob = new Blob([videoArray], { type: 'video/mp4' });
                 const url = URL.createObjectURL(blob);
 
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = result.filename || `trimmed_video_${start.toFixed(1)}s-${end.toFixed(1)}s.mp4`;
+                a.download = result.filename || `trimmed_video_${start.toFixed(1)}s-${end.toFixed(1)}s_${speed}x.mp4`;
                 a.click();
                 URL.revokeObjectURL(url);
 
-                console.log('[Trim] Video saved successfully as MP4');
+                console.log('[Trim] Video saved and updated, new duration:', result.duration);
 
             } catch (error) {
                 console.error('Error saving video:', error);
