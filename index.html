@@ -1076,17 +1076,10 @@
                 </p>
             </div>
 
-            <div style="margin-bottom: 2rem;">
-                <label>Video Generation Provider</label>
-                <select id="videoProvider" style="width: 100%; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer; margin-top: 0.5rem;">
-                    <option value="veo">Google Veo 3.1 (Recommended)</option>
-                    <option value="runway">Runway Gen4 Turbo</option>
-                    <option value="mock">Mock (Test Mode)</option>
-                </select>
-                <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.5rem;">
-                    Veo 3.1 produces high-quality videos. Runway is available as a backup.
-                </p>
-            </div>
+            <!-- Hidden video provider (defaults to Veo) -->
+            <select id="videoProvider" style="display: none;">
+                <option value="veo" selected>Google Veo 3.1</option>
+            </select>
 
             <div class="button-group">
                 <button class="btn-secondary" onclick="goToStep2()">Back</button>
