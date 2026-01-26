@@ -12,10 +12,12 @@ import requests
 import subprocess
 import tempfile
 import base64
+import secrets
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, Response, send_file
+from flask import Flask, request, jsonify, send_from_directory, Response, send_file, redirect, session, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
+from authlib.integrations.flask_client import OAuth
 
 # Google Auth for Vertex AI
 import google.auth
@@ -53,6 +55,25 @@ from integrations.claude_client import ClaudeClient
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
+
+# Session configuration for OAuth
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
+
+# OAuth configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+ALLOWED_DOMAIN = 'brite.co'
+
+def get_current_user():
+    """Get current authenticated user from session"""
+    return session.get('user')
 
 # Initialize AI clients
 openai_client = OpenAIClient()
@@ -140,26 +161,84 @@ GOOGLE ADS CREATIVE BEST PRACTICES:
 
 @app.route('/')
 def serve_index():
-    """Serve the main HTML page with Firebase config injected"""
+    """Serve the main HTML page with user info injected"""
+    user = get_current_user()
+    if not user:
+        return redirect('/auth/login')
+
     with open('index.html', 'r', encoding='utf-8') as f:
         html = f.read()
 
-    firebase_config = {
-        'apiKey': os.environ.get('FIREBASE_API_KEY', ''),
-        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
-        'projectId': os.environ.get('FIREBASE_PROJECT_ID', ''),
-        'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', ''),
-        'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
-        'appId': os.environ.get('FIREBASE_APP_ID', '')
-    }
-
-    config_script = f'''<script>
-    window.FIREBASE_CONFIG = {json.dumps(firebase_config)};
+    # Inject user info for server-side auth
+    user_script = f'''<script>
+    window.AUTH_USER = {json.dumps(user)};
     </script>
 </head>'''
-    html = html.replace('</head>', config_script)
+    html = html.replace('</head>', user_script)
 
     return Response(html, mimetype='text/html')
+
+
+# ============================================================================
+# OAUTH AUTHENTICATION ROUTES
+# ============================================================================
+
+@app.route('/auth/login')
+def auth_login():
+    """Redirect to Google OAuth"""
+    if get_current_user():
+        return redirect('/')
+    redirect_uri = url_for('auth_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle OAuth callback from Google"""
+    try:
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+
+        if not user_info:
+            return 'Failed to get user info', 400
+
+        email = user_info.get('email', '')
+
+        # Enforce domain restriction
+        if not email.endswith(f'@{ALLOWED_DOMAIN}'):
+            return f'''
+            <html>
+            <head><title>Access Denied</title></head>
+            <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #272D3F;">
+                <div style="text-align: center; color: white; padding: 2rem;">
+                    <h1 style="color: #FC883A;">Access Denied</h1>
+                    <p>Only @{ALLOWED_DOMAIN} email addresses are allowed.</p>
+                    <p style="color: #A9C1CB;">You tried to sign in with: {email}</p>
+                    <a href="/auth/login" style="color: #31D7CA;">Try again with a different account</a>
+                </div>
+            </body>
+            </html>
+            ''', 403
+
+        # Store user in session
+        session['user'] = {
+            'email': email,
+            'name': user_info.get('name', ''),
+            'picture': user_info.get('picture', '')
+        }
+
+        return redirect('/')
+
+    except Exception as e:
+        print(f"[AUTH ERROR] OAuth callback failed: {e}")
+        return f'Authentication failed: {str(e)}', 500
+
+
+@app.route('/auth/logout')
+def auth_logout():
+    """Clear session and redirect to login"""
+    session.pop('user', None)
+    return redirect('/auth/login')
 
 @app.route('/video_generator.html')
 def serve_video_generator():
@@ -183,17 +262,13 @@ def serve_root_file(filename):
         return send_from_directory('.', filename)
     return "Not found", 404
 
-@app.route('/api/firebase-config')
-def get_firebase_config():
-    """Return Firebase configuration for client-side auth"""
-    return jsonify({
-        'apiKey': os.environ.get('FIREBASE_API_KEY', ''),
-        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', 'brite-stack.firebaseapp.com'),
-        'projectId': os.environ.get('FIREBASE_PROJECT_ID', 'brite-stack'),
-        'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'brite-stack.firebasestorage.app'),
-        'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
-        'appId': os.environ.get('FIREBASE_APP_ID', '')
-    })
+@app.route('/api/user')
+def get_current_user_api():
+    """Return current authenticated user info"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'authenticated': False}), 401
+    return jsonify({'authenticated': True, 'user': user})
 
 @app.route('/api/analyze-inspiration-images', methods=['POST'])
 def analyze_inspiration_images():
