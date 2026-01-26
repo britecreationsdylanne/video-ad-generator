@@ -744,8 +744,8 @@
         /* Two column layout */
         .two-column {
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 2rem;
+            grid-template-columns: 1fr 320px;
+            gap: 1rem;
             align-items: start;
         }
 
@@ -1211,27 +1211,20 @@
 
                     <hr class="divider">
 
-                    <!-- Logo Section -->
-                    <h4>Logo</h4>
+                    <!-- Logo Section - Always visible, click to add -->
+                    <h4>Logo <span id="logoStatus" style="font-size: 0.8rem; color: #7DA3AF; font-weight: normal;">(click to add)</span></h4>
                     <div class="control-group">
-                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
-                            <input type="checkbox" id="showLogo" onchange="toggleLogo()" style="margin-right: 0.5rem; width: auto;">
-                            Add Logo (appears throughout video)
-                        </label>
-                    </div>
-
-                    <div id="logoControls" class="hidden">
-                        <div class="control-group">
-                            <label class="control-label">Select Logo</label>
-                            <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-                                <!-- Logos will be populated by JS -->
-                            </div>
-                        </div>
-                        <div class="control-group">
-                            <label class="control-label">Logo Size</label>
-                            <input type="range" id="logoSizeSlider" min="30" max="120" value="50" oninput="updateLogoSize(this.value)" style="width: 100%;">
+                        <div class="logo-grid" id="logoGrid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
+                            <!-- Logos will be populated by JS -->
                         </div>
                     </div>
+                    <div class="control-group" id="logoSizeControl" style="display: none;">
+                        <label class="control-label">Logo Size</label>
+                        <input type="range" id="logoSizeSlider" min="30" max="120" value="50" oninput="updateLogoSize(this.value)" style="width: 100%;">
+                        <button onclick="removeLogo()" style="margin-top: 0.5rem; background: #ff6b6b; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Remove Logo</button>
+                    </div>
+                    <!-- Hidden checkbox for state tracking -->
+                    <input type="checkbox" id="showLogo" style="display: none;">
                 </div>
             </div>
 
@@ -1338,8 +1331,8 @@
                     </div>
                 </div>
 
-                <!-- Ad Copy Summary -->
-                <div>
+                <!-- Ad Copy Summary - hidden for General Video -->
+                <div id="adCopySummarySection">
                     <h3 style="color: #272D3F; margin-bottom: 1rem;">Ad Copy</h3>
                     <div id="finalAdCopy" class="final-copy-display">
                         <!-- Copy summary will appear here -->
@@ -1517,15 +1510,17 @@
             grid.innerHTML = '';
             availableLogos.forEach((logo, index) => {
                 const logoEl = document.createElement('div');
-                logoEl.className = 'logo-card' + (index === 0 ? ' selected' : '');
+                // Only mark as selected if logo is currently shown and matches this index
+                const isSelected = overlaySettings.showLogo && overlaySettings.selectedLogoIndex === index;
+                logoEl.className = 'logo-card' + (isSelected ? ' selected' : '');
                 logoEl.onclick = () => selectLogo(logo.src, logoEl, index);
-                logoEl.style.cssText = 'padding: 0.75rem; border: 2px solid #E1E7EF; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 60px; transition: all 0.2s;';
-                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 40px; object-fit: contain;">`;
+                logoEl.style.cssText = 'padding: 0.5rem; border: 2px solid ' + (isSelected ? '#31D7CA' : '#E1E7EF') + '; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 50px; transition: all 0.2s;';
+                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 35px; object-fit: contain;">`;
                 grid.appendChild(logoEl);
             });
         }
 
-        // Select logo
+        // Select logo - clicking adds it to video
         function selectLogo(src, element, index) {
             document.querySelectorAll('.logo-card').forEach(opt => {
                 opt.classList.remove('selected');
@@ -1533,9 +1528,54 @@
             });
             element.classList.add('selected');
             element.style.borderColor = '#31D7CA';
+
+            // Set logo settings and show it
             overlaySettings.logoSrc = src;
             overlaySettings.selectedLogoIndex = index;
-            document.getElementById('logoPreviewImg').src = src;
+            overlaySettings.showLogo = true;
+            document.getElementById('showLogo').checked = true;
+
+            // Show logo on video
+            const logoPreview = document.getElementById('logoOverlayPreview');
+            const logoImg = document.getElementById('logoPreviewImg');
+            if (logoPreview && logoImg) {
+                logoImg.src = src;
+                logoImg.style.height = overlaySettings.logoSize + 'px';
+                logoPreview.style.display = 'block';
+            }
+
+            // Show size control
+            document.getElementById('logoSizeControl').style.display = 'block';
+            document.getElementById('logoStatus').textContent = '(click another to change)';
+
+            // Save to frame and update
+            saveCurrentFrameOverlay();
+            renderTimeline();
+            updateLogoPosition();
+        }
+
+        // Remove logo from video
+        function removeLogo() {
+            overlaySettings.showLogo = false;
+            overlaySettings.selectedLogoIndex = -1;
+            document.getElementById('showLogo').checked = false;
+
+            // Hide logo preview
+            document.getElementById('logoOverlayPreview').style.display = 'none';
+
+            // Hide size control
+            document.getElementById('logoSizeControl').style.display = 'none';
+            document.getElementById('logoStatus').textContent = '(click to add)';
+
+            // Deselect all logo cards
+            document.querySelectorAll('.logo-card').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.style.borderColor = '#E1E7EF';
+            });
+
+            // Save to frame and update
+            saveCurrentFrameOverlay();
+            renderTimeline();
         }
 
         // Set text font from dropdown
@@ -2127,6 +2167,15 @@
 
             // Initialize logo grid
             initializeLogoGrid();
+
+            // Show logo size control if logo is active
+            if (overlaySettings.showLogo) {
+                document.getElementById('logoSizeControl').style.display = 'block';
+                document.getElementById('logoStatus').textContent = '(click another to change)';
+                document.getElementById('logoOverlayPreview').style.display = 'block';
+                document.getElementById('logoPreviewImg').src = overlaySettings.logoSrc;
+                document.getElementById('logoPreviewImg').style.height = overlaySettings.logoSize + 'px';
+            }
 
             // Initialize logo drag handler
             initLogoDragHandler();
@@ -3217,25 +3266,24 @@
             document.getElementById('overlayTextDisplay').style.color = color;
         }
 
-        // Logo
+        // Legacy toggleLogo - kept for compatibility but now uses click-to-add approach
         function toggleLogo() {
+            // This is now handled by selectLogo() and removeLogo()
+            // but keep for any external calls
             const show = document.getElementById('showLogo').checked;
             overlaySettings.showLogo = show;
 
-            // Save to current frame's overlays
-            saveCurrentFrameOverlay();
-            renderTimeline(); // Update timeline indicators
-
-            document.getElementById('logoControls').classList.toggle('hidden', !show);
             document.getElementById('logoOverlayPreview').style.display = show ? 'block' : 'none';
+            document.getElementById('logoSizeControl').style.display = show ? 'block' : 'none';
 
-            if (show) {
-                // Ensure logo grid is populated
-                initializeLogoGrid();
+            if (show && overlaySettings.logoSrc) {
                 document.getElementById('logoPreviewImg').src = overlaySettings.logoSrc;
                 document.getElementById('logoPreviewImg').style.height = overlaySettings.logoSize + 'px';
                 updateLogoPosition();
             }
+
+            saveCurrentFrameOverlay();
+            renderTimeline();
         }
 
         function updateLogoPosition() {
@@ -3827,20 +3875,13 @@
 
             const copyContainer = document.getElementById('finalAdCopy');
 
-            // Different display for General Video vs Platform videos
+            // Hide entire Ad Copy section for General Video
+            const adCopySummarySection = document.getElementById('adCopySummarySection');
             if (selectedPlatform === 'general') {
-                copyContainer.innerHTML = `
-                    <div style="text-align: center; padding: 1rem;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#31D7CA" stroke-width="2" style="margin-bottom: 1rem;">
-                            <rect x="3" y="5" width="18" height="14" rx="2"/>
-                            <polygon points="10,9 16,12 10,15"/>
-                        </svg>
-                        <p style="color: #272D3F; font-weight: 600; margin-bottom: 0.5rem;">General Video</p>
-                        <p style="color: #7DA3AF; font-size: 0.9rem;">No ad copy needed for this video type.</p>
-                        <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 1rem;">You can add text overlays directly to the video in the Edit step.</p>
-                    </div>
-                `;
+                if (adCopySummarySection) adCopySummarySection.style.display = 'none';
+                copyContainer.innerHTML = '';
             } else {
+                if (adCopySummarySection) adCopySummarySection.style.display = 'block';
                 const specs = platformAdSpecs[selectedPlatform] || platformAdSpecs.meta;
                 copyContainer.innerHTML = `
                     <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #E1E7EF;">
