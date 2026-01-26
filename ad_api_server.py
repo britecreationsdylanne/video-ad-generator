@@ -165,6 +165,18 @@ def serve_root_file(filename):
         return send_from_directory('.', filename)
     return "Not found", 404
 
+@app.route('/api/firebase-config')
+def get_firebase_config():
+    """Return Firebase configuration for client-side auth"""
+    return jsonify({
+        'apiKey': os.environ.get('FIREBASE_API_KEY', ''),
+        'authDomain': os.environ.get('FIREBASE_AUTH_DOMAIN', 'brite-stack.firebaseapp.com'),
+        'projectId': os.environ.get('FIREBASE_PROJECT_ID', 'brite-stack'),
+        'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'brite-stack.firebasestorage.app'),
+        'messagingSenderId': os.environ.get('FIREBASE_MESSAGING_SENDER_ID', ''),
+        'appId': os.environ.get('FIREBASE_APP_ID', '')
+    })
+
 @app.route('/api/analyze-inspiration-images', methods=['POST'])
 def analyze_inspiration_images():
     """Analyze inspiration images using Gemini Vision and return style descriptions"""
