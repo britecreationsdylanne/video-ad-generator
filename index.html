@@ -745,7 +745,7 @@
         .two-column {
             display: grid;
             grid-template-columns: 1fr 300px;
-            gap: 0.5rem;
+            gap: 0;
             align-items: start;
         }
 
@@ -1506,8 +1506,8 @@
                 const isSelected = overlaySettings.showLogo && overlaySettings.selectedLogoIndex === index;
                 logoEl.className = 'logo-card' + (isSelected ? ' selected' : '');
                 logoEl.onclick = () => selectLogo(logo.src, logoEl, index);
-                logoEl.style.cssText = 'padding: 0.75rem; border: 2px solid ' + (isSelected ? '#31D7CA' : '#E1E7EF') + '; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 65px; transition: all 0.2s;';
-                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 50px; object-fit: contain;">`;
+                logoEl.style.cssText = 'padding: 0.75rem; border: 2px solid ' + (isSelected ? '#31D7CA' : '#E1E7EF') + '; border-radius: 8px; cursor: pointer; background: white; display: flex; align-items: center; justify-content: center; min-height: 80px; transition: all 0.2s;';
+                logoEl.innerHTML = `<img src="${logo.src}" alt="${logo.name}" title="${logo.name}" style="max-width: 100%; max-height: 62px; object-fit: contain;">`;
                 grid.appendChild(logoEl);
             });
         }
