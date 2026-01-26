@@ -1123,6 +1123,29 @@
                         <div id="timelineMarkers" style="position: relative; height: 20px; margin-top: 0.5rem;">
                             <!-- Markers will be rendered here -->
                         </div>
+
+                        <!-- Trim Controls -->
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E1E7EF;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <span style="font-size: 0.9rem; font-weight: 600; color: #272D3F;">Trim Video</span>
+                                <button onclick="applyTrim()" style="background: #31D7CA; color: white; border: none; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply Trim</button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.75rem; color: #7DA3AF;">Start (sec)</label>
+                                    <input type="number" id="trimStart" value="0" min="0" step="0.1" style="width: 100%; padding: 0.4rem; border: 1px solid #E1E7EF; border-radius: 4px; font-size: 0.9rem;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.75rem; color: #7DA3AF;">End (sec)</label>
+                                    <input type="number" id="trimEnd" value="5" min="0" step="0.1" style="width: 100%; padding: 0.4rem; border: 1px solid #E1E7EF; border-radius: 4px; font-size: 0.9rem;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.75rem; color: #7DA3AF;">Duration</label>
+                                    <span id="trimDuration" style="display: block; padding: 0.4rem; font-size: 0.9rem; color: #272D3F; font-weight: 500;">5.0s</span>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #7DA3AF; margin-top: 0.5rem;">Set start/end times to trim the video to your desired length.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -2107,6 +2130,7 @@
 
                 videoPlayer.onloadedmetadata = function() {
                     updateVideoTimeDisplay();
+                    initTrimControls();
                 };
             }
 
@@ -2924,6 +2948,70 @@
             const video = document.getElementById('videoPlayer');
             if (video) {
                 video.playbackRate = parseFloat(value);
+            }
+        }
+
+        // Trim functionality
+        let trimSettings = { start: 0, end: 5, applied: false };
+
+        function updateTrimDuration() {
+            const start = parseFloat(document.getElementById('trimStart').value) || 0;
+            const end = parseFloat(document.getElementById('trimEnd').value) || 0;
+            const duration = Math.max(0, end - start);
+            document.getElementById('trimDuration').textContent = duration.toFixed(1) + 's';
+            trimSettings.start = start;
+            trimSettings.end = end;
+        }
+
+        function initTrimControls() {
+            const video = document.getElementById('videoPlayer');
+            if (video && video.duration) {
+                document.getElementById('trimEnd').value = video.duration.toFixed(1);
+                document.getElementById('trimEnd').max = video.duration;
+                document.getElementById('trimStart').max = video.duration;
+                updateTrimDuration();
+            }
+            // Add event listeners
+            document.getElementById('trimStart').addEventListener('input', updateTrimDuration);
+            document.getElementById('trimEnd').addEventListener('input', updateTrimDuration);
+        }
+
+        function applyTrim() {
+            const video = document.getElementById('videoPlayer');
+            if (!video) return;
+
+            const start = parseFloat(document.getElementById('trimStart').value) || 0;
+            const end = parseFloat(document.getElementById('trimEnd').value) || video.duration;
+
+            if (start >= end) {
+                alert('Start time must be less than end time');
+                return;
+            }
+
+            trimSettings.start = start;
+            trimSettings.end = end;
+            trimSettings.applied = true;
+
+            // Set video to start position
+            video.currentTime = start;
+
+            // Add timeupdate listener to stop at end point
+            video.removeEventListener('timeupdate', checkTrimEnd);
+            video.addEventListener('timeupdate', checkTrimEnd);
+
+            alert(`Trim applied: ${start.toFixed(1)}s to ${end.toFixed(1)}s (${(end - start).toFixed(1)}s duration)\n\nVideo will now loop within this range.`);
+            console.log('[Trim] Applied:', start, 'to', end);
+        }
+
+        function checkTrimEnd() {
+            const video = document.getElementById('videoPlayer');
+            if (!video || !trimSettings.applied) return;
+
+            if (video.currentTime >= trimSettings.end) {
+                video.currentTime = trimSettings.start;
+            }
+            if (video.currentTime < trimSettings.start) {
+                video.currentTime = trimSettings.start;
             }
         }
 
