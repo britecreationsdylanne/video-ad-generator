@@ -4,7 +4,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'briteco-video-ad-generator'
+      - 'video-ad-generator'
       - '--source=.'
       - '--region=us-central1'
       - '--allow-unauthenticated'
