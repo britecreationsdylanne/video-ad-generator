@@ -27,7 +27,7 @@ RUNWAY_API_BASE = 'https://api.dev.runwayml.com/v1'
 
 # Google Veo API configuration (Vertex AI)
 VEO_LOCATION = os.getenv('GOOGLE_CLOUD_REGION', 'us-central1')
-VEO_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT', 'britecreations')
+VEO_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT', 'ai-tools-484419')
 VEO_MODEL_ID = 'veo-3.1-generate-001'
 
 
