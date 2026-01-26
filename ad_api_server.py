@@ -1368,16 +1368,30 @@ def trim_video():
             output_path = output_file.name
 
         try:
-            # Download the video
-            print(f"[API] Downloading video from: {video_url[:100]}...")
-            response = requests.get(video_url, stream=True, timeout=60)
-            response.raise_for_status()
+            # Handle data URL or HTTP URL
+            if video_url.startswith('data:'):
+                # Data URL - extract base64 data
+                print(f"[API] Processing data URL...")
+                # Format: data:video/mp4;base64,XXXXX
+                if ';base64,' in video_url:
+                    video_data = base64.b64decode(video_url.split(';base64,')[1])
+                else:
+                    return jsonify({'success': False, 'error': 'Invalid data URL format'}), 400
 
-            with open(input_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                with open(input_path, 'wb') as f:
+                    f.write(video_data)
+                print(f"[API] Data URL decoded, size: {len(video_data)} bytes")
+            else:
+                # HTTP URL - download
+                print(f"[API] Downloading video from: {video_url[:100]}...")
+                response = requests.get(video_url, stream=True, timeout=60)
+                response.raise_for_status()
 
-            print(f"[API] Video downloaded, trimming with FFmpeg...")
+                with open(input_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+            print(f"[API] Video ready, trimming with FFmpeg...")
 
             # Use FFmpeg to trim and convert to MP4
             cmd = [
