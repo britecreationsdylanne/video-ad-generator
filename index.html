@@ -966,6 +966,53 @@
                     <p style="color: #A9C1CB; font-size: 0.85rem; margin-top: 0.5rem;">These will influence the video style</p>
                 </div>
                 <div id="uploadedImages" style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;"></div>
+
+                <!-- Analyze Button - appears after image upload -->
+                <div id="analyzeButtonSection" style="display: none; margin-top: 1rem;">
+                    <button onclick="analyzeImageWithGemini()" id="analyzeImageBtn" style="background: #31D7CA; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 25px; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🔍</span> Analyze Image with Gemini Vision
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image Description Box - Shows after Gemini Vision analyzes -->
+            <div id="imageDescriptionSection" style="display: none; margin-bottom: 2rem;">
+                <div style="background: #F4F7FC; border: 2px solid #31D7CA; border-radius: 12px; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label style="font-weight: 600; color: #272D3F; font-size: 1.1rem;">
+                            🔍 Gemini Vision Analysis
+                        </label>
+                        <span id="imageDescriptionStatus" style="background: #31D7CA; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">
+                            Ready
+                        </span>
+                    </div>
+                    <textarea id="imageDescription"
+                        style="width: 100%; min-height: 200px; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 0.95rem; font-family: inherit; resize: vertical; line-height: 1.5;"
+                        placeholder="Click 'Analyze Image with Gemini Vision' above to analyze your uploaded image."></textarea>
+                    <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.75rem; margin-bottom: 0;">
+                        This is what Gemini Vision sees in your image. Edit if needed.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Combined Brief - Auto-generated from Campaign + Image Analysis -->
+            <div id="combinedBriefSection" style="margin-bottom: 2rem;">
+                <div style="background: linear-gradient(135deg, #E8FAF9 0%, #F4F7FC 100%); border: 2px solid #31D7CA; border-radius: 12px; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label style="font-weight: 600; color: #272D3F; font-size: 1.1rem;">
+                            📋 Combined Creative Brief
+                        </label>
+                        <button onclick="updateCombinedBrief()" style="background: #31D7CA; color: white; border: none; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; cursor: pointer;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <textarea id="combinedBrief"
+                        style="width: 100%; min-height: 200px; padding: 1rem; border: 2px solid #31D7CA; border-radius: 8px; font-size: 0.95rem; font-family: inherit; resize: vertical; line-height: 1.5; background: white;"
+                        placeholder="Your combined brief will appear here. It combines your Campaign Description with the Gemini Vision image analysis."></textarea>
+                    <p style="color: #272D3F; font-size: 0.9rem; margin-top: 0.75rem; margin-bottom: 0; font-weight: 500;">
+                        ⚡ This is what gets sent to the AI for video prompt generation.
+                    </p>
+                </div>
             </div>
 
             <div style="margin-bottom: 2rem;">
@@ -1026,6 +1073,18 @@
                 <textarea id="videoPrompt" placeholder="AI-generated video prompt will appear here..."></textarea>
                 <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.5rem;">
                     Tip: Include motion descriptions like "camera slowly pans", "gentle zoom in", "subject turns slightly"
+                </p>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <label>Video Generation Provider</label>
+                <select id="videoProvider" style="width: 100%; padding: 1rem; border: 2px solid #E1E7EF; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer; margin-top: 0.5rem;">
+                    <option value="veo">Google Veo 3.1 (Recommended)</option>
+                    <option value="runway">Runway Gen4 Turbo</option>
+                    <option value="mock">Mock (Test Mode)</option>
+                </select>
+                <p style="color: #7DA3AF; font-size: 0.85rem; margin-top: 0.5rem;">
+                    Veo 3.1 produces high-quality videos. Runway is available as a backup.
                 </p>
             </div>
 
@@ -1812,8 +1871,13 @@
                 return;
             }
 
+            // Get the combined brief (includes campaign + image analysis if available)
+            const combinedBrief = document.getElementById('combinedBrief').value.trim();
+
             // Show loading state
             showLoading('Generating Video Concept', 'AI is creating your video prompt...');
+
+            console.log('[GENERATE-PROMPT] Using Combined Brief:', combinedBrief.length, 'chars');
 
             try {
                 const response = await fetch('/api/generate-video-prompt', {
@@ -1821,6 +1885,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         campaignText: campaign,
+                        combinedBrief: combinedBrief,  // Send the combined brief
                         platform: selectedPlatform,
                         duration: selectedDuration,
                         motionStyle: selectedMotion,
@@ -3671,6 +3736,190 @@
 
         function hideLoading() {
             document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // ============================================
+        // IMAGE UPLOAD & GEMINI VISION ANALYSIS
+        // ============================================
+
+        let uploadedReferenceImages = [];
+        let analysisInProgress = false;
+
+        // Handle image upload
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            handleImageFiles(e.target.files);
+        });
+
+        function handleImageFiles(files) {
+            const container = document.getElementById('uploadedImages');
+
+            for (let file of files) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imageData = e.target.result;
+                        uploadedReferenceImages.push(imageData);
+
+                        // Show preview
+                        const imgWrapper = document.createElement('div');
+                        imgWrapper.style.cssText = 'position: relative; display: inline-block;';
+
+                        const img = document.createElement('img');
+                        img.src = imageData;
+                        img.style.cssText = 'width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #E1E7EF;';
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.innerHTML = '×';
+                        removeBtn.style.cssText = 'position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%; background: #D73D4F; color: white; border: none; cursor: pointer; font-size: 14px; line-height: 1;';
+                        removeBtn.onclick = function() {
+                            const index = uploadedReferenceImages.indexOf(imageData);
+                            if (index > -1) uploadedReferenceImages.splice(index, 1);
+                            imgWrapper.remove();
+                            updateAnalyzeButtonVisibility();
+                        };
+
+                        imgWrapper.appendChild(img);
+                        imgWrapper.appendChild(removeBtn);
+                        container.appendChild(imgWrapper);
+
+                        updateAnalyzeButtonVisibility();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        function updateAnalyzeButtonVisibility() {
+            const analyzeSection = document.getElementById('analyzeButtonSection');
+            const descSection = document.getElementById('imageDescriptionSection');
+
+            if (uploadedReferenceImages.length > 0) {
+                analyzeSection.style.display = 'block';
+            } else {
+                analyzeSection.style.display = 'none';
+                descSection.style.display = 'none';
+            }
+        }
+
+        async function analyzeImageWithGemini() {
+            if (uploadedReferenceImages.length === 0) {
+                alert('Please upload at least one image first');
+                return;
+            }
+
+            const analyzeBtn = document.getElementById('analyzeImageBtn');
+            const descSection = document.getElementById('imageDescriptionSection');
+            const descTextarea = document.getElementById('imageDescription');
+            const descStatus = document.getElementById('imageDescriptionStatus');
+
+            // Show loading state
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<span>⏳</span> Analyzing...';
+            descSection.style.display = 'block';
+            descTextarea.value = 'Analyzing your image with Gemini Vision...';
+            descStatus.textContent = 'Analyzing...';
+            descStatus.style.background = '#FC883A';
+            analysisInProgress = true;
+
+            try {
+                const response = await fetch('/api/analyze-inspiration-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images: uploadedReferenceImages })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.analysis) {
+                    descTextarea.value = result.analysis;
+                    descStatus.textContent = 'Complete';
+                    descStatus.style.background = '#31D7CA';
+                    console.log('[GEMINI VISION] Analysis complete:', result.analysis.length, 'chars');
+                } else {
+                    throw new Error(result.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('[GEMINI VISION] Error:', error);
+                descTextarea.value = 'Error analyzing image: ' + error.message;
+                descStatus.textContent = 'Error';
+                descStatus.style.background = '#D73D4F';
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '<span>🔍</span> Analyze Image with Gemini Vision';
+                analysisInProgress = false;
+                updateCombinedBrief();
+            }
+        }
+
+        // ============================================
+        // COMBINED BRIEF
+        // ============================================
+
+        function updateCombinedBrief() {
+            const campaignText = document.getElementById('campaignText').value.trim();
+            const imageAnalysis = document.getElementById('imageDescription').value.trim();
+            const combinedBrief = document.getElementById('combinedBrief');
+
+            // Skip if image analysis contains error messages
+            const isValidAnalysis = imageAnalysis &&
+                !imageAnalysis.startsWith('Error analyzing') &&
+                !imageAnalysis.startsWith('Failed to analyze') &&
+                !imageAnalysis.startsWith('Analyzing your image') &&
+                !imageAnalysis.startsWith('Click');
+
+            let combined = '';
+
+            if (campaignText) {
+                combined += `=== CAMPAIGN CONCEPT ===\n${campaignText}\n\n`;
+            }
+
+            if (isValidAnalysis) {
+                combined += `=== INSPIRATION IMAGE ANALYSIS ===\n${imageAnalysis}\n\n`;
+                combined += `=== INSTRUCTIONS ===\n`;
+                combined += `Create a video prompt that incorporates BOTH the campaign concept AND the visual elements from the inspiration image analysis above.\n`;
+                combined += `The inspiration image should inform the style, composition, lighting, and visual approach of the video.`;
+            } else if (campaignText) {
+                combined += `=== INSTRUCTIONS ===\n`;
+                combined += `Create a video prompt based on the campaign concept above.`;
+            }
+
+            if (combinedBrief) {
+                combinedBrief.value = combined;
+                console.log('[COMBINED BRIEF] Updated:', combined.length, 'chars');
+            }
+        }
+
+        // Add listeners to auto-update combined brief when inputs change
+        document.getElementById('campaignText').addEventListener('input', function() {
+            clearTimeout(this.updateTimeout);
+            this.updateTimeout = setTimeout(updateCombinedBrief, 500);
+        });
+
+        document.getElementById('imageDescription').addEventListener('input', function() {
+            clearTimeout(this.updateTimeout);
+            this.updateTimeout = setTimeout(updateCombinedBrief, 500);
+        });
+
+        // Drag and drop for reference images
+        const imageUploadArea = document.querySelector('.image-upload-area');
+        if (imageUploadArea) {
+            imageUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                imageUploadArea.style.borderColor = '#31D7CA';
+                imageUploadArea.style.background = '#F4F7FC';
+            });
+
+            imageUploadArea.addEventListener('dragleave', (e) => {
+                imageUploadArea.style.borderColor = '#E1E7EF';
+                imageUploadArea.style.background = '#fafafa';
+            });
+
+            imageUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                imageUploadArea.style.borderColor = '#E1E7EF';
+                imageUploadArea.style.background = '#fafafa';
+                handleImageFiles(e.dataTransfer.files);
+            });
         }
     </script>
 </body>

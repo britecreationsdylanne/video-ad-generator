@@ -770,6 +770,7 @@ def generate_video_prompt():
     try:
         data = request.json
         campaign_text = data.get('campaignText', '')
+        combined_brief = data.get('combinedBrief', '')  # NEW: Accept pre-merged brief
         platform = data.get('platform', 'tiktok')
         duration = data.get('duration', 6)
         motion_style = data.get('motionStyle', 'smooth')
@@ -780,6 +781,8 @@ def generate_video_prompt():
         print(f"  Platform: {platform}")
         print(f"  Duration: {duration}s")
         print(f"  Motion: {motion_style}")
+        print(f"  Combined brief length: {len(combined_brief)}")
+        print(f"  Combined brief preview: {combined_brief[:300]}..." if combined_brief else "  WARNING: No combined brief!")
 
         # Camera motion descriptions
         motion_descriptions = {
@@ -789,17 +792,31 @@ def generate_video_prompt():
         }
         motion_desc = motion_descriptions.get(motion_style, motion_descriptions['smooth'])
 
+        # Use combined brief if available, otherwise fall back to campaign text
+        brief_content = combined_brief if combined_brief else f"Campaign: {campaign_text}"
+
         prompt_context = f"""You are an expert at creating video generation prompts for AI video models like Google Veo.
 
 Create a video generation prompt for a BriteCo jewelry insurance advertisement.
 
-Campaign context: {campaign_text}
+=== PRIMARY DIRECTIVE: USER'S CREATIVE BRIEF ===
+{brief_content}
+
+=== HOW TO COMBINE THE BRIEF WITH BRAND GUIDELINES ===
+1. USE the subjects, scenes, and imagery described in the USER'S CREATIVE BRIEF above
+2. APPLY the BriteCo brand style (colors, lighting, aesthetic) to those subjects
+3. If the brief includes inspiration image analysis, incorporate those visual elements (subject matter, style, colors, lighting)
+4. NEVER substitute the user's specified subjects with default imagery
+
+=== BRITECO BRAND STYLE (Apply these to the user's subjects) ===
+- Color accents: Turquoise, Navy, Orange (use visually in lighting, backgrounds, or props)
+- Aesthetic: Modern, clean, optimistic, trustworthy
+- Lighting: Warm, natural, professional quality
+- No text overlays in the generated video
 
 Platform: {platform}
 Video Duration: {duration} seconds
 Camera Style: {motion_desc}
-
-{BRAND_GUIDELINES}
 
 VEO VIDEO BEST PRACTICES:
 - Structure: Subject + Action + Style + Lighting
@@ -809,13 +826,8 @@ VEO VIDEO BEST PRACTICES:
 - Include lighting and atmosphere details
 - Keep it under 500 words for best results
 
-Create ONE detailed, cinematic video prompt that:
-1. Opens with an establishing shot of jewelry
-2. Describes the camera movement and action
-3. Captures the emotional, aspirational feeling of protecting precious jewelry
-4. Ends with a memorable visual moment
-
-The video should feel like a premium luxury brand commercial that makes viewers feel the importance of protecting their valuable jewelry."""
+Create ONE detailed, cinematic video prompt that incorporates the user's creative brief with BriteCo's brand style.
+The video should feel like a premium luxury brand commercial."""
 
         # Use selected provider
         if provider == 'claude':
