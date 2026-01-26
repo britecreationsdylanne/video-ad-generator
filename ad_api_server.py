@@ -178,7 +178,7 @@ def serve_index():
     window.AUTH_USER = {json.dumps(user)};
     </script>
 </head>'''
-    html = html.replace('</head>', user_script)
+    html = html.replace('</head>', user_script, 1)
 
     return Response(html, mimetype='text/html')
 
