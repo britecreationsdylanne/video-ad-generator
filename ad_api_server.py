@@ -88,6 +88,16 @@ print("[OK] OpenAI initialized")
 print("[OK] Gemini initialized")
 print("[OK] Claude initialized")
 
+# GCS for drafts
+GCS_BUCKET_NAME = 'video-ad-generator-drafts'
+gcs_client = None
+try:
+    from google.cloud import storage as gcs_storage
+    gcs_client = gcs_storage.Client()
+    print("[OK] GCS initialized for drafts")
+except Exception as e:
+    print(f"[WARNING] GCS not available: {e}")
+
 # BriteCo brand guidelines
 BRAND_GUIDELINES = """
 BriteCo Brand Guidelines:
@@ -1587,6 +1597,107 @@ def trim_video():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# DRAFTS - GCS Auto-save
+# ============================================================================
+
+@app.route('/api/save-draft', methods=['POST'])
+def save_draft():
+    """Save video ad project draft to GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        data = request.json
+        campaign_name = data.get('campaignName', 'untitled').lower().replace(' ', '-')[:50]
+        saved_by = data.get('savedBy', 'unknown').split('@')[0].replace('.', '-')
+        blob_name = f"drafts/{campaign_name}-{saved_by}.json"
+
+        draft = {
+            'campaignName': data.get('campaignName', 'Untitled'),
+            'currentStep': data.get('currentStep'),
+            'selectedPlatform': data.get('selectedPlatform'),
+            'campaignText': data.get('campaignText'),
+            'adCopy': data.get('adCopy'),
+            'lastSavedBy': data.get('savedBy', 'unknown'),
+            'lastSavedAt': datetime.now().isoformat()
+        }
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(json.dumps(draft), content_type='application/json')
+        return jsonify({'success': True, 'file': blob_name})
+
+    except Exception as e:
+        print(f"[DRAFT SAVE ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/list-drafts', methods=['GET'])
+def list_drafts():
+    """List all drafts from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'drafts': []})
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blobs = list(bucket.list_blobs(prefix='drafts/'))
+        drafts = []
+        for blob in blobs:
+            if blob.name.endswith('.json'):
+                data = json.loads(blob.download_as_text())
+                drafts.append({
+                    'filename': blob.name,
+                    'campaignName': data.get('campaignName'),
+                    'currentStep': data.get('currentStep'),
+                    'selectedPlatform': data.get('selectedPlatform'),
+                    'lastSavedBy': data.get('lastSavedBy'),
+                    'lastSavedAt': data.get('lastSavedAt'),
+                })
+        drafts.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
+        return jsonify({'success': True, 'drafts': drafts})
+    except Exception as e:
+        print(f"[DRAFT LIST ERROR] {str(e)}")
+        return jsonify({'success': True, 'drafts': []})
+
+
+@app.route('/api/load-draft', methods=['GET'])
+def load_draft():
+    """Load a specific draft from GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    try:
+        filename = request.args.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(filename)
+        if not blob.exists():
+            return jsonify({'success': False, 'error': 'Draft not found'}), 404
+        data = json.loads(blob.download_as_text())
+        return jsonify({'success': True, 'draft': data})
+    except Exception as e:
+        print(f"[DRAFT LOAD ERROR] {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/delete-draft', methods=['DELETE'])
+def delete_draft():
+    """Delete a draft from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True})
+    try:
+        filename = request.json.get('file')
+        if not filename:
+            return jsonify({'success': False, 'error': 'No file specified'}), 400
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(filename)
+        if blob.exists():
+            blob.delete()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[DRAFT DELETE ERROR] {str(e)}")
+        return jsonify({'success': True})
 
 
 if __name__ == '__main__':
