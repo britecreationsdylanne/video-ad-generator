@@ -858,7 +858,7 @@
                     </div>
                 </div>
 
-                <button class="btn-primary" id="continueBtn" onclick="goToStep2()" disabled>
+                <button class="btn-primary" id="continueBtn" onclick="goToStep2()" disabled style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                     Continue to Inspiration
                 </button>
             </div>
@@ -986,9 +986,9 @@
                 </select>
             </div>
 
-            <div class="button-group">
-                <button class="btn-secondary" onclick="goToStep1()">Back</button>
-                <button class="btn-primary" onclick="generateVideoPrompt()">Generate Video Concept</button>
+            <div class="button-group" style="gap: 0.75rem;">
+                <button class="btn-secondary" onclick="goToStep1()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Back</button>
+                <button class="btn-primary" onclick="generateVideoPrompt()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Generate Video Concept</button>
             </div>
         </div>
 
@@ -1010,10 +1010,10 @@
                 <option value="veo" selected>Google Veo 3.1</option>
             </select>
 
-            <div class="button-group">
-                <button class="btn-secondary" onclick="goToStep2()">Back</button>
-                <button class="btn-secondary" onclick="regeneratePrompt()">Regenerate</button>
-                <button class="btn-primary" onclick="generateVideo()">Generate Video</button>
+            <div class="button-group" style="gap: 0.75rem;">
+                <button class="btn-secondary" onclick="goToStep2()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Back</button>
+                <button class="btn-secondary" onclick="regeneratePrompt()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Regenerate</button>
+                <button class="btn-primary" onclick="generateVideo()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Generate Video</button>
             </div>
         </div>
 
@@ -1212,7 +1212,7 @@
                             <span id="scrubberDuration" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
                         </div>
                     </div>
-                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;" onclick="captureCurrentFrame()">
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="captureCurrentFrame()">
                         Capture This Frame
                     </button>
                 </div>
@@ -1284,7 +1284,7 @@
                         <!-- Copy summary will appear here -->
                     </div>
 
-                    <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="copyAllText()">
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="copyAllText()">
                         Copy All Text
                     </button>
                 </div>
@@ -4112,6 +4112,7 @@
         async function saveDraft() {
             try {
                 const campaignName = document.getElementById('campaignText')?.value || 'Untitled Campaign';
+                const userEmail = currentUser?.email || currentUser || 'unknown';
                 const data = {
                     campaignName: campaignName,
                     currentStep: currentStep,
@@ -4120,15 +4121,22 @@
                     adCopy: adCopy,
                     videoUrl: videoData?.url || null,
                     videoPrompt: document.getElementById('videoPromptText')?.value || '',
-                    savedBy: currentUser || 'unknown'
+                    savedBy: userEmail
                 };
-                await fetch('/api/save-draft', {
+                console.log('[Drafts] Saving draft...', data);
+                const resp = await fetch('/api/save-draft', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                console.log('[Drafts] Saved draft');
-                loadDrafts(); // Refresh the drafts list
+                const result = await resp.json();
+                console.log('[Drafts] Save response:', result);
+                if (result.success) {
+                    console.log('[Drafts] Saved successfully');
+                    loadDrafts(); // Refresh the drafts list
+                } else {
+                    console.error('[Drafts] Save failed:', result.error);
+                }
             } catch (e) {
                 console.error('[Drafts] Save failed:', e);
             }
