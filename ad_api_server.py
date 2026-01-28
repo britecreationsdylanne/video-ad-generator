@@ -1620,6 +1620,8 @@ def save_draft():
             'selectedPlatform': data.get('selectedPlatform'),
             'campaignText': data.get('campaignText'),
             'adCopy': data.get('adCopy'),
+            'videoUrl': data.get('videoUrl'),
+            'videoPrompt': data.get('videoPrompt'),
             'lastSavedBy': data.get('savedBy', 'unknown'),
             'lastSavedAt': datetime.now().isoformat()
         }
@@ -1638,7 +1640,7 @@ def save_draft():
 def list_drafts():
     """List all drafts from GCS"""
     if not gcs_client:
-        return jsonify({'success': True, 'drafts': []})
+        return jsonify([])
     try:
         bucket = gcs_client.bucket(GCS_BUCKET_NAME)
         blobs = list(bucket.list_blobs(prefix='drafts/'))
@@ -1646,19 +1648,28 @@ def list_drafts():
         for blob in blobs:
             if blob.name.endswith('.json'):
                 data = json.loads(blob.download_as_text())
+                saved_at = data.get('lastSavedAt', '')
+                if saved_at:
+                    try:
+                        dt = datetime.fromisoformat(saved_at.replace('Z', '+00:00'))
+                        saved_at = dt.strftime('%b %d, %I:%M %p')
+                    except:
+                        pass
                 drafts.append({
-                    'filename': blob.name,
-                    'campaignName': data.get('campaignName'),
-                    'currentStep': data.get('currentStep'),
-                    'selectedPlatform': data.get('selectedPlatform'),
-                    'lastSavedBy': data.get('lastSavedBy'),
-                    'lastSavedAt': data.get('lastSavedAt'),
+                    'name': blob.name,
+                    'metadata': {
+                        'campaignName': data.get('campaignName'),
+                        'selectedPlatform': data.get('selectedPlatform'),
+                        'savedBy': data.get('lastSavedBy'),
+                        'savedAt': saved_at,
+                        'videoUrl': data.get('videoUrl'),
+                    }
                 })
-        drafts.sort(key=lambda d: d.get('lastSavedAt', ''), reverse=True)
-        return jsonify({'success': True, 'drafts': drafts})
+        drafts.sort(key=lambda d: d.get('metadata', {}).get('savedAt', ''), reverse=True)
+        return jsonify(drafts)
     except Exception as e:
         print(f"[DRAFT LIST ERROR] {str(e)}")
-        return jsonify({'success': True, 'drafts': []})
+        return jsonify([])
 
 
 @app.route('/api/load-draft', methods=['GET'])
@@ -1675,7 +1686,8 @@ def load_draft():
         if not blob.exists():
             return jsonify({'success': False, 'error': 'Draft not found'}), 404
         data = json.loads(blob.download_as_text())
-        return jsonify({'success': True, 'draft': data})
+        # Return draft data directly for frontend compatibility
+        return jsonify(data)
     except Exception as e:
         print(f"[DRAFT LOAD ERROR] {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500

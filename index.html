@@ -760,6 +760,8 @@
                 grid-template-columns: 1fr;
             }
         }
+        #draftSearch::placeholder { color: rgba(255,255,255,0.5); }
+        #draftFilterPlatform option, #draftFilterCreator option { color: #333; }
     </style>
 
 </head>
@@ -862,6 +864,27 @@
         <div id="pastProjectsPanel" class="card" style="margin-top: 2rem; background: #3B5A6E; padding: 2.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2 style="color: white; font-size: 1.5rem; margin: 0;">Saved Drafts</h2>
+                </div>
+
+                <!-- Search and Filter Controls -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <input type="text" id="draftSearch" placeholder="Search drafts..."
+                        oninput="filterDrafts()"
+                        style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem;">
+                    <select id="draftFilterPlatform" onchange="filterDrafts()"
+                        style="padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
+                        <option value="">All Platforms</option>
+                        <option value="meta">Meta</option>
+                        <option value="reddit">Reddit</option>
+                        <option value="pinterest">Pinterest</option>
+                        <option value="demandgen">DemandGen</option>
+                        <option value="pmax">PMax</option>
+                        <option value="general">General</option>
+                    </select>
+                    <select id="draftFilterCreator" onchange="filterDrafts()"
+                        style="padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
+                        <option value="">All Creators</option>
+                    </select>
                 </div>
 
                 <div id="draftsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
@@ -4084,6 +4107,8 @@
         });
 
         // ── Draft Functions ──
+        let allDrafts = []; // Store all drafts for filtering
+
         async function saveDraft() {
             try {
                 const campaignName = document.getElementById('campaignText')?.value || 'Untitled Campaign';
@@ -4093,6 +4118,8 @@
                     selectedPlatform: selectedPlatform,
                     campaignText: campaignName,
                     adCopy: adCopy,
+                    videoUrl: videoData?.url || null,
+                    videoPrompt: document.getElementById('videoPromptText')?.value || '',
                     savedBy: currentUser || 'unknown'
                 };
                 await fetch('/api/save-draft', {
@@ -4110,31 +4137,78 @@
             try {
                 const resp = await fetch('/api/list-drafts');
                 const drafts = await resp.json();
-                const grid = document.getElementById('draftsGrid');
-                const empty = document.getElementById('draftsEmpty');
-                if (!grid) return;
-                if (!drafts || drafts.length === 0) {
-                    grid.style.display = 'none';
-                    if (empty) empty.style.display = 'block';
-                    return;
+                if (drafts && drafts.length > 0) {
+                    allDrafts = drafts;
+                    populateCreatorFilter();
+                    filterDrafts();
+                } else {
+                    allDrafts = [];
+                    filterDrafts();
                 }
-                grid.style.display = 'grid';
-                if (empty) empty.style.display = 'none';
-                grid.innerHTML = drafts.map(d => {
-                    const meta = d.metadata || {};
-                    const name = meta.campaignName || 'Untitled';
-                    const platform = meta.selectedPlatform || '—';
-                    const savedBy = (meta.savedBy || 'unknown').split('@')[0];
-                    const time = meta.savedAt || '';
-                    return `<div onclick="loadDraft('${d.name}')" style="background:rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;cursor:pointer;transition:transform 0.2s,background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.18)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.transform=''">
-                        <h4 style="color:white;margin:0 0 0.5rem">${name}</h4>
-                        <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.85rem">Platform: ${platform}</p>
-                        <p style="color:rgba(255,255,255,0.5);margin:0.25rem 0 0;font-size:0.8rem">${savedBy} · ${time}</p>
-                    </div>`;
-                }).join('');
             } catch (e) {
                 console.error('[Drafts] Load list failed:', e);
             }
+        }
+
+        function populateCreatorFilter() {
+            const select = document.getElementById('draftFilterCreator');
+            if (!select) return;
+            const creators = [...new Set(allDrafts.map(d => (d.metadata?.savedBy || '')).filter(Boolean))];
+            select.innerHTML = '<option value="">All Creators</option>' +
+                creators.map(c => `<option value="${c}">${c.split('@')[0]}</option>`).join('');
+        }
+
+        function filterDrafts() {
+            const search = (document.getElementById('draftSearch')?.value || '').toLowerCase();
+            const platformFilter = document.getElementById('draftFilterPlatform')?.value || '';
+            const creatorFilter = document.getElementById('draftFilterCreator')?.value || '';
+
+            const filtered = allDrafts.filter(d => {
+                const meta = d.metadata || {};
+                const name = (meta.campaignName || '').toLowerCase();
+                const creator = meta.savedBy || '';
+                const platform = meta.selectedPlatform || '';
+
+                if (search && !name.includes(search)) return false;
+                if (platformFilter && platform !== platformFilter) return false;
+                if (creatorFilter && creator !== creatorFilter) return false;
+                return true;
+            });
+
+            renderDrafts(filtered);
+        }
+
+        function renderDrafts(drafts) {
+            const grid = document.getElementById('draftsGrid');
+            const empty = document.getElementById('draftsEmpty');
+            if (!grid) return;
+
+            if (!drafts || drafts.length === 0) {
+                grid.style.display = 'none';
+                if (empty) empty.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            if (empty) empty.style.display = 'none';
+            grid.innerHTML = drafts.map(d => {
+                const meta = d.metadata || {};
+                const name = meta.campaignName || 'Untitled';
+                const platform = meta.selectedPlatform || '—';
+                const savedBy = (meta.savedBy || 'unknown').split('@')[0];
+                const time = meta.savedAt || '';
+                const hasVideo = meta.videoUrl ? '<span style="background:#31D7CA;color:white;padding:2px 8px;border-radius:4px;font-size:0.7rem;margin-left:8px;">VIDEO</span>' : '';
+                return `<div onclick="loadDraft('${d.name}')" style="background:rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;cursor:pointer;transition:transform 0.2s,background 0.2s;position:relative;" onmouseover="this.style.background='rgba(255,255,255,0.18)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.transform=''">
+                    <button onclick="event.stopPropagation(); deleteDraft('${d.name}')"
+                        style="position:absolute;top:12px;right:12px;background:#ff4757;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;opacity:0.8;transition:opacity 0.2s;"
+                        onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.8'">
+                        Delete
+                    </button>
+                    <h4 style="color:white;margin:0 0 0.5rem;padding-right:60px;">${name}${hasVideo}</h4>
+                    <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.85rem">Platform: ${platform}</p>
+                    <p style="color:rgba(255,255,255,0.5);margin:0.25rem 0 0;font-size:0.8rem">${savedBy} · ${time}</p>
+                </div>`;
+            }).join('');
         }
 
         async function loadDraft(filename) {
@@ -4154,22 +4228,41 @@
                 if (data.adCopy) {
                     adCopy = data.adCopy;
                 }
-                const step = data.currentStep || 1;
-                showStep(step);
+                if (data.videoPrompt) {
+                    const el = document.getElementById('videoPromptText');
+                    if (el) el.value = data.videoPrompt;
+                }
+
+                // If we have a video URL, restore it and go to step 4
+                if (data.videoUrl) {
+                    videoData = { url: data.videoUrl };
+                    const videoPreview = document.getElementById('generatedVideo');
+                    if (videoPreview) {
+                        videoPreview.src = data.videoUrl;
+                    }
+                    showStep(4);
+                } else if (data.videoPrompt) {
+                    // If we have a prompt but no video, go to step 3
+                    showStep(3);
+                } else {
+                    // Otherwise go to the saved step or step 1
+                    showStep(data.currentStep || 1);
+                }
             } catch (e) {
                 console.error('[Drafts] Load draft failed:', e);
             }
         }
 
-        async function deleteDraft() {
+        async function deleteDraft(filename) {
+            if (!confirm('Are you sure you want to delete this draft?')) return;
             try {
-                const campaignName = document.getElementById('campaignText')?.value || 'Untitled Campaign';
                 await fetch('/api/delete-draft', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ campaignName: campaignName, savedBy: currentUser || 'unknown' })
+                    body: JSON.stringify({ file: filename })
                 });
                 console.log('[Drafts] Deleted draft');
+                loadDrafts();
             } catch (e) {
                 console.error('[Drafts] Delete failed:', e);
             }
