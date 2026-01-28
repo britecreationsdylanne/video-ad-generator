@@ -888,6 +888,8 @@
                     <!-- Draft cards loaded dynamically -->
                 </div>
 
+                <p id="draftsNote" style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 1rem; display: none;">Note: Videos may take up to 30 seconds to load when resuming a draft.</p>
+
                 <div id="draftsEmpty" style="text-align: center; padding: 3rem; background: rgba(255,255,255,0.1); border-radius: 12px;">
                     <p style="font-size: 3rem; margin-bottom: 1rem;">📂</p>
                     <h3 style="color: white; margin-bottom: 0.5rem;">No saved drafts yet</h3>
@@ -1078,8 +1080,8 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                                <button onclick="applyTrim()" style="flex: 1; background: #31D7CA; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply Changes</button>
-                                <button onclick="saveTrimmedVideo()" style="flex: 1; background: #FC883A; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply & Download</button>
+                                <button onclick="applyTrim()" style="flex: 1; background: #008182; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply Changes</button>
+                                <button onclick="saveTrimmedVideo()" style="flex: 1; background: #008182; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">Apply & Download</button>
                             </div>
                             <p style="font-size: 0.75rem; color: #7DA3AF; margin-top: 0.5rem;">Trim & speed are baked into video. "Apply Changes" updates editor. "Apply & Download" also saves MP4.</p>
                         </div>
@@ -1178,7 +1180,11 @@
                 <button class="btn-secondary" onclick="goToStep3()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Back</button>
                 <button class="btn-secondary" onclick="regenerateVideo()" style="background: #FC883A; border-color: #FC883A; padding: 0.5rem 1rem; font-size: 0.9rem;">Regenerate</button>
                 <button class="btn-primary" onclick="goToStep5()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Continue to Thumbnail</button>
-                <button class="btn-primary" onclick="saveDraft(); this.textContent='Saved!'; setTimeout(() => { this.textContent='Save Draft'; }, 2000);" style="background: #22c55e; border-color: #22c55e; padding: 0.5rem 1rem; font-size: 0.9rem;">Save Draft</button>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding: 15px; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; text-align: center;">
+                <button class="btn-primary" onclick="saveDraft(); this.textContent='Saved!'; setTimeout(() => { this.innerHTML='💾 SAVE DRAFT'; }, 2000);" style="background: #22c55e; border-color: #22c55e; padding: 10px 30px; font-size: 1rem;">💾 SAVE DRAFT</button>
+                <p style="margin: 8px 0 0 0; font-size: 13px; color: #666;">Save your progress to resume later</p>
             </div>
         </div>
 
@@ -1205,7 +1211,7 @@
                             <span id="scrubberDuration" style="font-size: 0.85rem; color: #7DA3AF;">0:00</span>
                         </div>
                     </div>
-                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="captureCurrentFrame()">
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem; background: #008182; border-color: #008182;" onclick="captureCurrentFrame()">
                         Capture This Frame
                     </button>
                 </div>
@@ -4192,16 +4198,21 @@
         function renderDrafts(drafts) {
             const grid = document.getElementById('draftsGrid');
             const empty = document.getElementById('draftsEmpty');
+            const note = document.getElementById('draftsNote');
             if (!grid) return;
 
             if (!drafts || drafts.length === 0) {
                 grid.style.display = 'none';
                 if (empty) empty.style.display = 'block';
+                if (note) note.style.display = 'none';
                 return;
             }
 
             grid.style.display = 'grid';
             if (empty) empty.style.display = 'none';
+            // Show note if any draft has a video
+            const hasVideoDrafts = drafts.some(d => d.metadata?.videoUrl);
+            if (note) note.style.display = hasVideoDrafts ? 'block' : 'none';
             grid.innerHTML = drafts.map(d => {
                 const meta = d.metadata || {};
                 const name = meta.campaignName || 'Untitled';
