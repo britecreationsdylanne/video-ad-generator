@@ -799,14 +799,7 @@
             const existingUserInfo = document.getElementById('userInfo');
             if (existingUserInfo) existingUserInfo.remove();
 
-            // Add user info
-            const userInfo = document.createElement('div');
-            userInfo.id = 'userInfo';
-            userInfo.style.cssText = 'display: flex; align-items: center; gap: 1rem;';
-            userInfo.innerHTML = `
-                <span style="color: #A9C1CB; font-size: 0.9rem;">${user.email}</span>
-            `;
-            headerContent.appendChild(userInfo);
+            // User info removed - no display needed
         }
     </script>
 
@@ -1699,30 +1692,37 @@
         }
 
         // Navigation
+        let currentStep = 1;
+
         function goToStep1() {
+            currentStep = 1;
             hideAllSteps();
             document.getElementById('step1').classList.remove('hidden');
             document.getElementById('pastProjectsPanel').classList.remove('hidden');
         }
 
         function goToStep2() {
+            currentStep = 2;
             hideAllSteps();
             document.getElementById('step2').classList.remove('hidden');
             document.getElementById('pastProjectsPanel').classList.add('hidden');
         }
 
         function goToStep3() {
+            currentStep = 3;
             hideAllSteps();
             document.getElementById('step3').classList.remove('hidden');
         }
 
         function goToStep4() {
+            currentStep = 4;
             hideAllSteps();
             document.getElementById('step4').classList.remove('hidden');
             initializeVideoEditor();
         }
 
         function goToStep5() {
+            currentStep = 5;
             hideAllSteps();
             document.getElementById('step5').classList.remove('hidden');
             generateThumbnails();
@@ -1737,6 +1737,7 @@
         }
 
         function goToStep6() {
+            currentStep = 6;
             // Skip ad copy for General Video
             if (selectedPlatform === 'general') {
                 goToStep7();
@@ -1749,6 +1750,7 @@
         }
 
         function goToStep7() {
+            currentStep = 7;
             hideAllSteps();
             document.getElementById('step7').classList.remove('hidden');
             renderFinalReview();
