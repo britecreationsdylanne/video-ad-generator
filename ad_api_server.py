@@ -71,7 +71,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
 
 # OAuth configuration
 oauth = OAuth(app)
-google = oauth.register(
+google_oauth = oauth.register(
     name='google',
     client_id=os.environ.get('GOOGLE_CLIENT_ID'),
     client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
@@ -209,14 +209,14 @@ def auth_login():
     if get_current_user():
         return redirect('/')
     redirect_uri = url_for('auth_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
+    return google_oauth.authorize_redirect(redirect_uri)
 
 
 @app.route('/auth/callback')
 def auth_callback():
     """Handle OAuth callback from Google"""
     try:
-        token = google.authorize_access_token()
+        token = google_oauth.authorize_access_token()
         user_info = token.get('userinfo')
 
         if not user_info:
