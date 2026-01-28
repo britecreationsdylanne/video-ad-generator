@@ -4252,13 +4252,13 @@
                     if (videoPreview) {
                         videoPreview.src = data.videoUrl;
                     }
-                    showStep(4);
+                    goToStep4();
                 } else if (data.videoPrompt) {
                     // If we have a prompt but no video, go to step 3
-                    showStep(3);
+                    goToStep3();
                 } else {
-                    // Otherwise go to the saved step or step 1
-                    showStep(data.currentStep || 1);
+                    // Otherwise go to step 1
+                    goToStep1();
                 }
             } catch (e) {
                 console.error('[Drafts] Load draft failed:', e);
