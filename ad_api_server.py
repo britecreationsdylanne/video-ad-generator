@@ -39,14 +39,20 @@ VEO_MODEL_ID = 'veo-3.1-generate-001'
 
 def get_veo_auth_token():
     """Get OAuth2 access token for Vertex AI using Application Default Credentials"""
+    print("[VEO AUTH] Attempting to get token...", flush=True)
     try:
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         creds, project = google.auth.default(scopes=scopes)
+        print(f"[VEO AUTH] Got credentials for project: {project}, valid: {creds.valid}", flush=True)
         if not creds.valid:
+            print("[VEO AUTH] Refreshing credentials...", flush=True)
             creds.refresh(GoogleAuthRequest())
+        print(f"[VEO AUTH] Token obtained successfully, length: {len(creds.token) if creds.token else 0}", flush=True)
         return creds.token
     except Exception as e:
-        print(f"[VEO AUTH ERROR] Failed to get ADC token: {e}")
+        import traceback
+        print(f"[VEO AUTH ERROR] Failed to get ADC token: {e}", flush=True)
+        print(f"[VEO AUTH ERROR] Traceback: {traceback.format_exc()}", flush=True)
         return None
 
 # Import from local integrations folder

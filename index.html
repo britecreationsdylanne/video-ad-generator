@@ -867,12 +867,12 @@
                 </div>
 
                 <!-- Search and Filter Controls -->
-                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="draftSearch" placeholder="Search drafts..."
                         oninput="filterDrafts()"
                         style="flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem;">
                     <select id="draftFilterPlatform" onchange="filterDrafts()"
-                        style="padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
+                        style="width: auto; padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
                         <option value="">All Platforms</option>
                         <option value="meta">Meta</option>
                         <option value="reddit">Reddit</option>
@@ -882,7 +882,7 @@
                         <option value="general">General</option>
                     </select>
                     <select id="draftFilterCreator" onchange="filterDrafts()"
-                        style="padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
+                        style="width: auto; padding: 0.75rem 1rem; border-radius: 8px; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 0.95rem; cursor: pointer;">
                         <option value="">All Creators</option>
                     </select>
                 </div>
