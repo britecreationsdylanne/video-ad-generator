@@ -790,6 +790,11 @@
         // Update user display in header
         function updateUserDisplay(user) {
             const headerContent = document.querySelector('.header-content');
+            if (!headerContent) {
+                // Header not yet in DOM, retry after DOM ready
+                document.addEventListener('DOMContentLoaded', () => updateUserDisplay(user));
+                return;
+            }
             // Remove existing user info if present
             const existingUserInfo = document.getElementById('userInfo');
             if (existingUserInfo) existingUserInfo.remove();
