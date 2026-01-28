@@ -4194,19 +4194,20 @@
             grid.innerHTML = drafts.map(d => {
                 const meta = d.metadata || {};
                 const name = meta.campaignName || 'Untitled';
-                const platform = meta.selectedPlatform || '—';
+                const platform = (meta.selectedPlatform || '—').charAt(0).toUpperCase() + (meta.selectedPlatform || '—').slice(1);
                 const savedBy = (meta.savedBy || 'unknown').split('@')[0];
                 const time = meta.savedAt || '';
                 const hasVideo = meta.videoUrl ? '<span style="background:#31D7CA;color:white;padding:2px 8px;border-radius:4px;font-size:0.7rem;margin-left:8px;">VIDEO</span>' : '';
-                return `<div onclick="loadDraft('${d.name}')" style="background:rgba(255,255,255,0.1);border-radius:12px;padding:1.5rem;cursor:pointer;transition:transform 0.2s,background 0.2s;position:relative;" onmouseover="this.style.background='rgba(255,255,255,0.18)';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)';this.style.transform=''">
+                return `<div onclick="loadDraft('${d.name}')" style="background:white;border-radius:12px;padding:24px;cursor:pointer;transition:transform 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.1);position:relative;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
                     <button onclick="event.stopPropagation(); deleteDraft('${d.name}')"
                         style="position:absolute;top:12px;right:12px;background:#ff4757;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;opacity:0.8;transition:opacity 0.2s;"
                         onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.8'">
                         Delete
                     </button>
-                    <h4 style="color:white;margin:0 0 0.5rem;padding-right:60px;">${name}${hasVideo}</h4>
-                    <p style="color:rgba(255,255,255,0.7);margin:0;font-size:0.85rem">Platform: ${platform}</p>
-                    <p style="color:rgba(255,255,255,0.5);margin:0.25rem 0 0;font-size:0.8rem">${savedBy} · ${time}</p>
+                    <h4 style="color:#272d3f;margin:0 0 8px 0;padding-right:60px;">${name}${hasVideo}</h4>
+                    <p style="color:#666;margin:4px 0;font-size:13px;">Platform: ${platform}</p>
+                    <p style="color:#666;margin:4px 0;font-size:13px;">Created by: ${savedBy}</p>
+                    <p style="color:#999;margin:4px 0;font-size:12px;">${time} CT</p>
                 </div>`;
             }).join('');
         }
