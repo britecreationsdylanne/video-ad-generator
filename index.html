@@ -159,6 +159,54 @@
             display: none !important;
         }
 
+        /* User Info Bar */
+        .user-info-bar {
+            background: white;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .user-info-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #272D3F;
+            font-size: 0.95rem;
+        }
+
+        .user-email {
+            color: #008182;
+            font-size: 0.85rem;
+        }
+
+        .sign-out-btn {
+            background: none;
+            border: none;
+            color: #7DA3AF;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .sign-out-btn:hover {
+            background: #F4F7FC;
+            color: #272D3F;
+        }
+
         textarea, input[type="text"], select {
             width: 100%;
             padding: 1rem;
@@ -771,10 +819,34 @@
         // User is authenticated server-side, get user from injected window.AUTH_USER
         let currentUser = window.AUTH_USER || null;
 
+        // BritePulse user identification helpers
+        function setBritePulseUser(user) {
+            function trySetUser() {
+                const instance = window.BritePulse?.getInstance();
+                if (instance) {
+                    instance.setUser({
+                        id: user.id || user.email,
+                        email: user.email,
+                        name: user.name || user.email
+                    });
+                    console.log('BritePulse user set:', user.email);
+                } else {
+                    // SDK not ready yet, retry
+                    setTimeout(trySetUser, 100);
+                }
+            }
+            trySetUser();
+        }
+
+        function clearBritePulseUser() {
+            window.BritePulse?.getInstance()?.setUser(undefined);
+        }
+
         // Initialize auth display on page load
         function initAuth() {
             if (currentUser) {
                 console.log('User authenticated:', currentUser.email);
+                setBritePulseUser(currentUser);  // Set BritePulse user FIRST
                 updateUserDisplay(currentUser);
             }
         }
@@ -784,22 +856,29 @@
 
         // Sign out - redirect to server logout
         function signOut() {
+            clearBritePulseUser();
             window.location.href = '/auth/logout';
         }
 
-        // Update user display in header
+        // Update user display in user info bar
         function updateUserDisplay(user) {
-            const headerContent = document.querySelector('.header-content');
-            if (!headerContent) {
-                // Header not yet in DOM, retry after DOM ready
+            const userInfoBar = document.getElementById('userInfoBar');
+            const userDisplayName = document.getElementById('userDisplayName');
+            const userDisplayEmail = document.getElementById('userDisplayEmail');
+
+            if (!userInfoBar) {
+                // DOM not ready, retry after DOM ready
                 document.addEventListener('DOMContentLoaded', () => updateUserDisplay(user));
                 return;
             }
-            // Remove existing user info if present
-            const existingUserInfo = document.getElementById('userInfo');
-            if (existingUserInfo) existingUserInfo.remove();
 
-            // User info removed - no display needed
+            if (user) {
+                userDisplayName.textContent = user.name || user.email;
+                userDisplayEmail.textContent = user.email;
+                userInfoBar.classList.remove('hidden');
+            } else {
+                userInfoBar.classList.add('hidden');
+            }
         }
     </script>
 
@@ -812,6 +891,17 @@
     </header>
 
     <main>
+        <!-- User Info Bar -->
+        <div id="userInfoBar" class="user-info-bar hidden">
+            <div class="user-info-content">
+                <div class="user-details">
+                    <span id="userDisplayName" class="user-name"></span>
+                    <span id="userDisplayEmail" class="user-email"></span>
+                </div>
+                <button onclick="signOut()" class="sign-out-btn">Sign out</button>
+            </div>
+        </div>
+
         <!-- Step 1: Platform Selection -->
         <div id="step1" class="card" style="padding: 0; overflow: hidden;">
             <!-- Navy Title Bar -->
