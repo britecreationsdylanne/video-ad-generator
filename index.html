@@ -159,51 +159,81 @@
             display: none !important;
         }
 
-        /* User Info Bar */
-        .user-info-bar {
-            background: white;
-            border-radius: 8px;
-            padding: 0.75rem 1.25rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        /* User Profile Dropdown */
+        .user-profile-container {
+            position: relative;
         }
 
-        .user-info-content {
+        .user-avatar-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #31D7CA;
+            cursor: pointer;
+            overflow: hidden;
+            background: #31D7CA;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
         }
 
-        .user-details {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
+        .user-avatar-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .user-name {
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 200px;
+            padding: 1rem;
+            z-index: 1000;
+            display: none;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown-info {
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #E1E7EF;
+            margin-bottom: 0.75rem;
+        }
+
+        .user-dropdown-name {
             font-weight: 600;
             color: #272D3F;
             font-size: 0.95rem;
+            margin-bottom: 0.25rem;
         }
 
-        .user-email {
+        .user-dropdown-email {
             color: #008182;
             font-size: 0.85rem;
         }
 
-        .sign-out-btn {
+        .user-dropdown-signout {
             background: none;
             border: none;
             color: #7DA3AF;
             font-size: 0.9rem;
             cursor: pointer;
-            padding: 0.5rem 0.75rem;
-            border-radius: 6px;
-            transition: all 0.2s;
+            padding: 0.5rem 0;
+            width: 100%;
+            text-align: left;
+            transition: color 0.2s;
         }
 
-        .sign-out-btn:hover {
-            background: #F4F7FC;
+        .user-dropdown-signout:hover {
             color: #272D3F;
         }
 
@@ -860,26 +890,59 @@
             window.location.href = '/auth/logout';
         }
 
-        // Update user display in user info bar
+        // Update user display in header dropdown
         function updateUserDisplay(user) {
-            const userInfoBar = document.getElementById('userInfoBar');
-            const userDisplayName = document.getElementById('userDisplayName');
-            const userDisplayEmail = document.getElementById('userDisplayEmail');
+            const container = document.getElementById('userProfileContainer');
+            const avatarInitials = document.getElementById('userAvatarInitials');
+            const avatarImg = document.getElementById('userAvatarImg');
+            const dropdownName = document.getElementById('userDropdownName');
+            const dropdownEmail = document.getElementById('userDropdownEmail');
 
-            if (!userInfoBar) {
+            if (!container) {
                 // DOM not ready, retry after DOM ready
                 document.addEventListener('DOMContentLoaded', () => updateUserDisplay(user));
                 return;
             }
 
             if (user) {
-                userDisplayName.textContent = user.name || user.email;
-                userDisplayEmail.textContent = user.email;
-                userInfoBar.classList.remove('hidden');
+                // Set initials from name or email
+                const name = user.name || user.email;
+                const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                avatarInitials.textContent = initials;
+
+                // If user has a picture, show it instead of initials
+                if (user.picture) {
+                    avatarImg.src = user.picture;
+                    avatarImg.style.display = 'block';
+                    avatarInitials.style.display = 'none';
+                } else {
+                    avatarImg.style.display = 'none';
+                    avatarInitials.style.display = 'block';
+                }
+
+                dropdownName.textContent = user.name || user.email;
+                dropdownEmail.textContent = user.email;
+                container.classList.remove('hidden');
             } else {
-                userInfoBar.classList.add('hidden');
+                container.classList.add('hidden');
             }
         }
+
+        // Toggle dropdown visibility
+        function toggleUserDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const container = document.getElementById('userProfileContainer');
+            if (dropdown && container && !container.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
     </script>
 
     <header>
@@ -887,21 +950,24 @@
             <div class="logo" onclick="startOver()" style="cursor: pointer;">
                 <span>BriteCo</span> Video Ad Generator
             </div>
+            <!-- User Profile Dropdown -->
+            <div id="userProfileContainer" class="user-profile-container hidden">
+                <button class="user-avatar-btn" onclick="toggleUserDropdown(event)">
+                    <span id="userAvatarInitials"></span>
+                    <img id="userAvatarImg" src="" alt="" style="display: none;">
+                </button>
+                <div id="userDropdown" class="user-dropdown">
+                    <div class="user-dropdown-info">
+                        <div id="userDropdownName" class="user-dropdown-name"></div>
+                        <div id="userDropdownEmail" class="user-dropdown-email"></div>
+                    </div>
+                    <button onclick="signOut()" class="user-dropdown-signout">Sign out</button>
+                </div>
+            </div>
         </div>
     </header>
 
     <main>
-        <!-- User Info Bar -->
-        <div id="userInfoBar" class="user-info-bar hidden">
-            <div class="user-info-content">
-                <div class="user-details">
-                    <span id="userDisplayName" class="user-name"></span>
-                    <span id="userDisplayEmail" class="user-email"></span>
-                </div>
-                <button onclick="signOut()" class="sign-out-btn">Sign out</button>
-            </div>
-        </div>
-
         <!-- Step 1: Platform Selection -->
         <div id="step1" class="card" style="padding: 0; overflow: hidden;">
             <!-- Navy Title Bar -->
