@@ -15,7 +15,7 @@ class OpenAIClient:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.client = OpenAI(api_key=self.api_key) if self.api_key else None
-        self.default_model = os.getenv("DEFAULT_CONTENT_MODEL", "gpt-4o")
+        self.default_model = os.getenv("DEFAULT_CONTENT_MODEL", "gpt-5.5")
 
     def generate_content(
         self,
@@ -60,14 +60,17 @@ class OpenAIClient:
         kwargs = {
             "model": model,
             "messages": messages,
-            "temperature": temperature,
         }
 
-        # GPT-5.x and newer models use max_completion_tokens instead of max_tokens
+        # GPT-5.x / reasoning models use max_completion_tokens and only support the
+        # default temperature; older chat models use max_tokens + a custom temperature.
         if model and (model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3")):
             kwargs["max_completion_tokens"] = max_tokens
+            if temperature == 1:
+                kwargs["temperature"] = temperature  # only default is allowed; omit otherwise
         else:
             kwargs["max_tokens"] = max_tokens
+            kwargs["temperature"] = temperature
 
         # Add tools if provided (for web search)
         if tools:
