@@ -1172,7 +1172,46 @@
         <!-- Step 4: Video Preview & Edit -->
         <div id="step4" class="card hidden">
             <h1>Edit Your Video</h1>
-            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 2rem;">Add text overlays and logo to your video. Scrub to different times and add text boxes where you want them to appear.</p>
+            <p style="color: #7DA3AF; font-size: 1.1rem; margin-bottom: 1.5rem;">Add text overlays and logo to your video. Scrub to different times and add text boxes where you want them to appear.</p>
+
+            <!-- Conversational Refine Panel -->
+            <details id="videoRefinePanel" style="margin-bottom: 1.5rem; border: 2px solid #FC883A; border-radius: 12px; overflow: hidden;">
+                <summary style="cursor: pointer; padding: 0.85rem 1.25rem; background: #FFF4EC; color: #272D3F; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 0.5rem;">
+                    💬 Not quite right? Refine the video by chatting
+                    <span style="font-weight: 400; color: #7DA3AF; font-size: 0.85rem;">— describe a change and I'll regenerate it</span>
+                </summary>
+                <div style="padding: 1rem 1.25rem;">
+                    <div id="videoRefineMessages" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 260px; overflow-y: auto; margin-bottom: 0.85rem;"></div>
+                    <p style="font-size: 0.78rem; color: #A9C1CB; margin: 0 0 0.6rem 0;">⚠️ Each refinement generates a brand-new video (Veo can't edit in place) — it takes ~1–2 minutes and counts as a generation. Your previous versions are kept so you can switch back.</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 0.7rem;">
+                        <label style="font-size: 0.82rem; color: #272D3F; display: flex; align-items: center; gap: 0.4rem;">
+                            Duration
+                            <select id="videoRefineDuration" style="padding: 0.4rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.85rem;">
+                                <option value="4">4s</option>
+                                <option value="6">6s</option>
+                                <option value="8">8s</option>
+                            </select>
+                        </label>
+                        <label style="font-size: 0.82rem; color: #272D3F; display: flex; align-items: center; gap: 0.4rem;">
+                            Aspect
+                            <select id="videoRefineAspect" style="padding: 0.4rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.85rem;">
+                                <option value="9:16">9:16 (vertical)</option>
+                                <option value="16:9">16:9 (horizontal)</option>
+                                <option value="1:1">1:1 (square)</option>
+                            </select>
+                        </label>
+                        <span style="font-size: 0.78rem; color: #A9C1CB;">Provider: Google Veo 3.1</span>
+                    </div>
+                    <textarea id="videoRefineInput" rows="2" placeholder="e.g. I like it but make it feel more energetic, or swap the background to a sunny outdoor setting"
+                        style="width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #E1E7EF; border-radius: 8px; font-size: 0.9rem; resize: none; font-family: inherit;"
+                        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendVideoRefine();}"></textarea>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem; align-items: center;">
+                        <button id="videoRefineSendBtn" onclick="sendVideoRefine()" class="btn-primary" style="padding: 0.55rem 1.25rem; font-size: 0.9rem; background: #FC883A; border-color: #FC883A;">Refine &amp; Regenerate</button>
+                        <select id="videoVersionSelect" onchange="switchVideoVersion(this.value)" style="display: none; padding: 0.5rem; border: 1px solid #E1E7EF; border-radius: 6px; font-size: 0.85rem; color: #272D3F;">
+                        </select>
+                    </div>
+                </div>
+            </details>
 
             <div class="two-column">
                 <!-- Video Preview with Overlays -->
@@ -1882,6 +1921,7 @@
             hideAllSteps();
             document.getElementById('step4').classList.remove('hidden');
             initializeVideoEditor();
+            syncVideoRefineControls();
         }
 
         function goToStep5() {
@@ -2104,7 +2144,9 @@
                 '16:9': '1280:720',
                 '1:1': '720:1280'  // Fallback to portrait
             };
-            const ratio = ratioMap[specs.aspect] || '720:1280';
+            // Refine panel may override the aspect for this generation
+            const aspect = refineAspectOverride || specs.aspect;
+            const ratio = ratioMap[aspect] || '720:1280';
 
             try {
                 // Build request body
@@ -2162,6 +2204,9 @@
                                 taskId: taskId
                             };
 
+                            // Record this as a version so the user can switch back later
+                            recordVideoVersion(document.getElementById('videoPrompt').value, videoData);
+
                             setTimeout(() => {
                                 hideLoading();
                                 goToStep4();
@@ -2200,6 +2245,115 @@
             }
             // Simply call generateVideo again - it uses the same stored settings
             await generateVideo();
+        }
+
+        // ========== CONVERSATIONAL VIDEO REFINE ==========
+        // Veo can't edit an existing video, so refinement = revise the prompt
+        // (keeping what works) and regenerate. Every completed video is kept as a
+        // version so the user can switch back.
+        let videoVersions = [];          // [{label, prompt, url, taskId}]
+        let videoRefineFeedback = [];    // cumulative plain-language change requests
+        let refineAspectOverride = null; // aspect chosen in the refine panel (overrides platform default)
+
+        // Sync the refine panel's duration/aspect controls to current settings (called on Step 4)
+        function syncVideoRefineControls() {
+            const dur = document.getElementById('videoRefineDuration');
+            const asp = document.getElementById('videoRefineAspect');
+            if (dur) dur.value = String(selectedDuration);
+            if (asp) asp.value = refineAspectOverride || (platformSpecs[selectedPlatform]?.aspect) || '9:16';
+        }
+
+        function videoRefineAddMessage(role, html) {
+            const box = document.getElementById('videoRefineMessages');
+            const isUser = role === 'user';
+            const bubble = document.createElement('div');
+            bubble.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'}; max-width:85%;
+                background:${isUser ? '#31D7CA' : '#F4F7FC'}; color:${isUser ? 'white' : '#272D3F'};
+                padding:0.55rem 0.8rem; border-radius:12px; font-size:0.88rem; line-height:1.35; word-wrap:break-word;`;
+            bubble.innerHTML = html;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
+            return bubble;
+        }
+
+        function recordVideoVersion(prompt, vData) {
+            if (!vData || !vData.url) return;
+            const label = videoVersions.length === 0 ? 'Original' : `Refinement ${videoVersions.length}`;
+            videoVersions.push({ label, prompt: prompt, url: vData.url, taskId: vData.taskId });
+            refreshVideoVersionSelect();
+        }
+
+        function refreshVideoVersionSelect() {
+            const sel = document.getElementById('videoVersionSelect');
+            if (!sel) return;
+            if (videoVersions.length < 2) { sel.style.display = 'none'; return; }
+            sel.style.display = 'inline-block';
+            sel.innerHTML = videoVersions.map((v, i) =>
+                `<option value="${i}" ${i === videoVersions.length - 1 ? 'selected' : ''}>${v.label}</option>`
+            ).join('');
+        }
+
+        function switchVideoVersion(index) {
+            const v = videoVersions[parseInt(index, 10)];
+            if (!v) return;
+            videoData = { url: v.url, frames: generateMockFrames(5), duration: selectedDuration, taskId: v.taskId };
+            document.getElementById('videoPrompt').value = v.prompt;
+            // Update whichever players are on screen
+            ['videoPlayer', 'finalVideoPlayer', 'scrubberVideo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.src = v.url; el.style.display = 'block'; }
+            });
+            const placeholder = document.getElementById('videoPlaceholder');
+            if (placeholder) placeholder.style.display = 'none';
+            videoRefineAddMessage('assistant', `↩ Switched to <strong>${v.label}</strong>.`);
+        }
+
+        async function sendVideoRefine() {
+            const input = document.getElementById('videoRefineInput');
+            const feedback = input.value.trim();
+            if (!feedback) return;
+
+            const currentPrompt = document.getElementById('videoPrompt').value;
+            if (!currentPrompt) { alert('Generate a video first, then refine it.'); return; }
+
+            // Apply any duration / aspect changes the user picked in the panel
+            selectedDuration = parseInt(document.getElementById('videoRefineDuration').value, 10) || selectedDuration;
+            refineAspectOverride = document.getElementById('videoRefineAspect').value || null;
+
+            const sendBtn = document.getElementById('videoRefineSendBtn');
+            input.value = '';
+            videoRefineAddMessage('user', feedback.replace(/</g, '&lt;'));
+            const thinking = videoRefineAddMessage('assistant', '✍️ Rewriting the prompt with your change…');
+            sendBtn.disabled = true;
+
+            try {
+                const resp = await fetch('/api/refine-video-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentPrompt: currentPrompt,
+                        feedback: feedback,
+                        history: videoRefineFeedback.slice(),  // changes already applied
+                        provider: 'claude'
+                    })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error || 'Refine failed');
+
+                videoRefineFeedback.push(feedback);
+                document.getElementById('videoPrompt').value = result.prompt;
+                thinking.innerHTML = '🎬 Prompt updated. Generating your new video now — this takes ~1–2 minutes…';
+
+                // Regenerate; on success this records a new version and returns to step 4
+                await generateVideo();
+            } catch (e) {
+                console.error('[Video Refine] Failed:', e);
+                thinking.innerHTML = `❌ ${e.message}. Try rephrasing the change.`;
+                thinking.style.background = '#FFECEC';
+                thinking.style.color = '#C0392B';
+            } finally {
+                sendBtn.disabled = false;
+            }
         }
 
         // Mock video generation (for testing without API)
@@ -4059,6 +4213,12 @@
                 selectedMotion = 'smooth';
                 videoData = null;
                 currentFrame = 0;
+                videoVersions = [];
+                videoRefineFeedback = [];
+                refineAspectOverride = null;
+                refreshVideoVersionSelect();
+                const vrm = document.getElementById('videoRefineMessages');
+                if (vrm) vrm.innerHTML = '';
                 overlaySettings = {
                     text: '',
                     position: 'bottom-center',

@@ -990,6 +990,79 @@ The video should feel like a premium luxury brand commercial."""
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/refine-video-prompt', methods=['POST'])
+def refine_video_prompt():
+    """Merge a user's plain-language feedback into the existing video prompt.
+
+    Veo can't edit an existing video, so conversational refinement works by
+    revising the PROMPT (keeping what already works) and regenerating.
+    """
+    try:
+        data = request.json
+        current_prompt = data.get('currentPrompt', '')
+        feedback = data.get('feedback', '')
+        history = data.get('history', [])  # list of prior feedback strings
+        provider = data.get('provider', 'claude')
+
+        if not current_prompt or not feedback:
+            return jsonify({'success': False, 'error': 'currentPrompt and feedback are required'}), 400
+
+        print(f"\n[API] Refine Video Prompt Request")
+        print(f"  Provider: {provider}")
+        print(f"  Feedback: {feedback[:200]}")
+        print(f"  Prior feedback rounds: {len(history)}")
+
+        history_block = ""
+        if history:
+            history_block = "\n=== EARLIER CHANGES ALREADY APPLIED (keep these) ===\n" + \
+                "\n".join(f"- {h}" for h in history if h)
+
+        refine_context = f"""You are refining an existing AI video-generation prompt for a BriteCo jewelry insurance advertisement.
+
+The user liked the previous video but wants specific changes. Your job is to produce a REVISED prompt that:
+1. KEEPS everything the user did not ask to change (same subjects, scene, mood, BriteCo brand style)
+2. APPLIES the user's requested change precisely
+3. Stays a single, cohesive, cinematic Veo prompt (Subject + Action + Style + Lighting, under 500 words, no negative words like "no"/"don't", no on-screen text)
+
+=== CURRENT PROMPT ===
+{current_prompt}
+{history_block}
+
+=== USER'S REQUESTED CHANGE ===
+{feedback}
+
+Return ONLY the revised video prompt text — no preamble, no explanation, no quotes."""
+
+        if provider == 'claude':
+            result = claude_client.generate_content(
+                prompt=refine_context,
+                max_tokens=800,
+                temperature=0.7
+            )
+            revised = result.get('content', '').strip()
+        else:
+            result = openai_client.generate_content(
+                prompt=refine_context,
+                max_tokens=800,
+                temperature=0.7
+            )
+            revised = result.get('content', '').strip()
+
+        print(f"[API] Refined video prompt generated ({len(revised)} chars)")
+
+        return jsonify({
+            'success': True,
+            'prompt': revised,
+            'provider': provider
+        })
+
+    except Exception as e:
+        print(f"[API ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ============================================================================
 # VIDEO GENERATION (Veo API - Default, Runway API - Fallback)
 # ============================================================================
