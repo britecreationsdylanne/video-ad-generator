@@ -14,7 +14,7 @@ class OpenAIClient:
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.client = OpenAI(api_key=self.api_key, timeout=120.0) if self.api_key else None
         self.default_model = os.getenv("DEFAULT_CONTENT_MODEL", "gpt-5.5")
 
     def generate_content(

@@ -2635,6 +2635,7 @@
         }
 
         // Render text boxes on the video preview (only those visible at current time)
+        let _lastTextBoxSig = null;
         function renderVideoTextBoxes() {
             const container = document.getElementById('textBoxesContainer');
             const video = document.getElementById('videoPlayer');
@@ -2646,6 +2647,13 @@
             const visibleBoxes = videoTextBoxes.filter(box =>
                 currentTime >= box.startTime && currentTime <= box.endTime
             );
+
+            // Skip the DOM rebuild when nothing changed (ontimeupdate fires several
+            // times/sec during playback — avoid destroying/recreating nodes each tick).
+            const sig = JSON.stringify(visibleBoxes.map(b =>
+                [b.id, b.x, b.y, b.text, b.bgColor, b.textColor, b.fontFamily, b.fontSize, b.id === selectedTextBoxId]));
+            if (sig === _lastTextBoxSig && container.childElementCount === visibleBoxes.length) return;
+            _lastTextBoxSig = sig;
 
             container.innerHTML = visibleBoxes.map(box => {
                 const isSelected = box.id === selectedTextBoxId;
