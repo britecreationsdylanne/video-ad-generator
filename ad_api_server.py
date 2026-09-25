@@ -540,7 +540,7 @@ Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google G
             print("[API] Using Claude...")
             result = claude_client.generate_content(
                 prompt=prompt_context,
-                max_tokens=500,
+                max_tokens=1500,
                 temperature=0.7
             )
             prompt = result.get('content', '')
@@ -548,7 +548,7 @@ Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google G
             print("[API] Using Gemini...")
             result = gemini_client.generate_content(
                 prompt=prompt_context,
-                max_tokens=500,
+                max_tokens=1500,
                 temperature=0.7
             )
             prompt = result.get('content', '')
@@ -556,7 +556,7 @@ Generate ONE detailed, creative prompt (200 words max) for Nano Banana (Google G
             print("[API] Using OpenAI...")
             result = openai_client.generate_content(
                 prompt=prompt_context,
-                max_tokens=500,
+                max_tokens=1500,
                 temperature=0.7
             )
             prompt = result.get('content', '')
